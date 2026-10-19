@@ -1,0 +1,16 @@
+restaurant_id,restaurant_name,city,state
+R01,Downtown Chicago Grill,Chicago,IL
+R02,Wrigleyville Bites,Chicago,IL
+R03,Indianapolis Crossroads Eats,Indianapolis,IN
+R04,Detroit Motor City Diner,Detroit,MI
+R05,Milwaukee Lakefront Kitchen,Milwaukee,WI
+R06,Columbus Campus Corner,Columbus,OH
+R07,Minneapolis Uptown Cafe,Minneapolis,MN
+R08,Kansas City BBQ Junction,Kansas City,MO
+R09,St. Louis Gateway Grub,St. Louis,MO
+R10,Cleveland Flats Eatery,Cleveland,OH
+R11,Cincinnati Riverfront Bites,Cincinnati,OH
+R12,Des Moines Heartland Hub,Des Moines,IA
+R13,Omaha Midtown Munch,Omaha,NE
+R14,Madison State Street Snacks,Madison,WI
+R15,Ann Arbor College Cravings,Ann Arbor,MI

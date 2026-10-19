@@ -1,0 +1,51 @@
+menu_item_id,menu_item_name,category,unit_price
+M01,Classic Cheeseburger,Burgers,6.99
+M02,Double Bacon Burger,Burgers,9.49
+M03,Veggie Burger,Burgers,7.49
+M04,Mushroom Swiss Burger,Burgers,8.29
+M05,BBQ Ranch Burger,Burgers,8.99
+M06,Spicy Jalapeno Burger,Burgers,8.49
+M07,Kids Burger,Burgers,4.99
+M08,Turkey Burger,Burgers,7.99
+M09,Crispy Chicken Sandwich,Chicken,7.29
+M10,Grilled Chicken Wrap,Chicken,6.99
+M11,Chicken Nuggets 6pc,Chicken,4.99
+M12,Chicken Nuggets 12pc,Chicken,7.49
+M13,Buffalo Chicken Tenders,Chicken,6.49
+M14,Chicken Caesar Salad,Chicken,8.99
+M15,French Fries Regular,Sides,2.99
+M16,French Fries Large,Sides,3.99
+M17,Onion Rings,Sides,3.49
+M18,Mozzarella Sticks,Sides,4.49
+M19,Side Salad,Sides,3.29
+M20,Coleslaw,Sides,2.49
+M21,Mac and Cheese,Sides,3.99
+M22,Loaded Potato Bites,Sides,4.29
+M23,Soft Drink Regular,Drinks,1.99
+M24,Soft Drink Large,Drinks,2.49
+M25,Iced Tea,Drinks,2.29
+M26,Lemonade,Drinks,2.49
+M27,Milkshake Vanilla,Drinks,4.99
+M28,Milkshake Chocolate,Drinks,4.99
+M29,Coffee Regular,Drinks,1.79
+M30,Bottled Water,Drinks,1.49
+M31,Breakfast Sandwich Egg & Cheese,Breakfast,4.49
+M32,Breakfast Burrito,Breakfast,5.49
+M33,Pancake Platter,Breakfast,5.99
+M34,Hash Browns,Breakfast,2.29
+M35,Oatmeal Cup,Breakfast,2.99
+M36,Fruit Cup,Breakfast,3.49
+M37,Yogurt Parfait,Breakfast,3.99
+M38,Apple Pie Slice,Desserts,2.99
+M39,Chocolate Chip Cookie,Desserts,1.49
+M40,Brownie,Desserts,2.49
+M41,Sundae,Desserts,3.49
+M42,Soft Serve Cone,Desserts,1.99
+M43,Combo #1 Cheeseburger Meal,Combos,9.99
+M44,Combo #2 Chicken Sandwich Meal,Combos,9.99
+M45,Combo #3 Double Burger Meal,Combos,12.49
+M46,Combo #4 Nuggets Meal,Combos,8.99
+M47,Kids Combo Meal,Combos,5.99
+M48,Seasonal Fish Sandwich,Specials,7.99
+M49,Loaded Nachos,Specials,6.99
+M50,Chili Bowl,Specials,5.49
