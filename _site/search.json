@@ -320,5 +320,33 @@
     "title": "GitHub and Netlify",
     "section": "Scope and transparency",
     "text": "Scope and transparency\nThe report describes patterns in the selected restaurant’s data. Promotion, weather, events, and marketing comparisons are observational. They do not establish causation. The margin metric is an estimated price-minus-food-cost measure, not net profit."
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "QSR Daily Demand",
+    "section": "",
+    "text": "OMIS 681 · Stage 1 · Descriptive analysis\n\n\nI use five years of daily menu-item sales for R07 in Minneapolis to answer three practical questions: what sells most, when demand changes, and which relationships are worth investigating.\n\n\nStudy period\n2021–2025\nFive calendar years\n\n\nSales records\n91,300\nOne row per menu item and date\n\n\nMenu items\n50\nEight menu categories\n\n\nLocation\nR07\nMinneapolis\n\n\n\nThe central finding: Drinks lead unit demand, while Burgers lead estimated total food-cost margin. Volume and value point to different decisions."
+  },
+  {
+    "objectID": "index.html#where-is-demand-strongestand-what-should-the-owner-do-next",
+    "href": "index.html#where-is-demand-strongestand-what-should-the-owner-do-next",
+    "title": "QSR Daily Demand",
+    "section": "",
+    "text": "I use five years of daily menu-item sales for R07 in Minneapolis to answer three practical questions: what sells most, when demand changes, and which relationships are worth investigating.\n\n\nStudy period\n2021–2025\nFive calendar years\n\n\nSales records\n91,300\nOne row per menu item and date\n\n\nMenu items\n50\nEight menu categories\n\n\nLocation\nR07\nMinneapolis\n\n\n\nThe central finding: Drinks lead unit demand, while Burgers lead estimated total food-cost margin. Volume and value point to different decisions."
+  },
+  {
+    "objectID": "index.html#follow-the-analysis",
+    "href": "index.html#follow-the-analysis",
+    "title": "QSR Daily Demand",
+    "section": "Follow the analysis",
+    "text": "Follow the analysis\n\nData — the source tables used and how they connect.\nExploration — understand the sales rows, establish quantity baselines, compare groups, and choose charts based on the question.\nAnalysis report — the business story, relevant graphs, and practical takeaways.\nSlides — a concise presentation of the main findings."
+  },
+  {
+    "objectID": "index.html#the-story-in-brief",
+    "href": "index.html#the-story-in-brief",
+    "title": "QSR Daily Demand",
+    "section": "The story in brief",
+    "text": "The story in brief\nWhat sells: drinks and a small group of familiar items account for much of the recorded volume.\nWhen it sells: demand rises into summer, and daily patterns vary by weekday and category.\nWhat is worth testing: promotions differ by category; weather and marketing show associations that need careful interpretation; price and preparation time show little overall linear relationship with average item-day quantity.\nThe report uses the graph types covered in Weeks 1–5, including ranking bars, lines, distributions, scatterplots, correlation displays, and faceting. It stays within descriptive analysis and does not add machine learning."
   }
 ]

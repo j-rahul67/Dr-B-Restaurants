@@ -3,7 +3,7 @@ title: "QSR Daily Demand"
 subtitle: "Five years of sales, clearer business decisions"
 ---
 
-:::: {.qsr-hero}
+::::: {.qsr-hero}
 [OMIS 681 · Stage 1 · Descriptive analysis]{.qsr-eyebrow}
 
 ## Where is demand strongest—and what should the owner do next?
@@ -41,10 +41,11 @@ Minneapolis
 :::
 ::::
 
-::: {.qsr-key-finding}
+:::: {.qsr-key-finding}
 **The central finding:** Drinks lead unit demand, while Burgers lead estimated total food-cost margin. Volume and value point to different decisions.
-:::
 ::::
+
+:::::
 
 ## Follow the analysis
 
