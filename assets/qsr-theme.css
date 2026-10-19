@@ -1,0 +1,202 @@
+/* QSR Daily Demand — shared Stage 1 design system. */
+:root {
+  --qsr-ink: #203447;
+  --qsr-muted: #667786;
+  --qsr-navy: #16384b;
+  --qsr-teal: #267487;
+  --qsr-coral: #e97855;
+  --qsr-paper: #f4f7fa;
+  --qsr-line: #e2e8ee;
+  --qsr-shadow: 0 8px 24px rgba(22, 56, 75, .055);
+}
+html { scroll-behavior: smooth; scroll-padding-top: 88px; }
+body {
+  background: var(--qsr-paper);
+  color: var(--qsr-ink);
+  font-family: Inter, "Segoe UI", Aptos, system-ui, -apple-system, sans-serif;
+  line-height: 1.65;
+  font-size: 16px;
+}
+.navbar { box-shadow: 0 3px 15px rgba(18,45,60,.10); }
+.navbar .navbar-brand { font-weight: 800; letter-spacing: -.025em; }
+/* Full-width Quarto report: expand the article grid and let charts use the viewport. */
+#quarto-content {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 auto;
+  padding-inline: clamp(8px, 1.4vw, 24px);
+  box-sizing: border-box;
+}
+main.content {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: clamp(14px, 1.8vw, 28px) 0 42px;
+  margin: 8px auto 34px;
+  box-sizing: border-box;
+}
+#quarto-document-content {
+  min-width: 0;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0;
+  box-sizing: border-box;
+}
+#title-block-header {
+  border-top: 4px solid var(--qsr-teal);
+  padding: 8px 0 20px;
+  margin-bottom: 20px;
+}
+#title-block-header .title {
+  color: var(--qsr-navy);
+  font-weight: 850;
+  letter-spacing: -.04em;
+  line-height: 1.12;
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+#title-block-header .subtitle { color: var(--qsr-muted); font-size: 1.1rem; }
+h1, h2, h3 { color: var(--qsr-navy); letter-spacing: -.025em; }
+#quarto-document-content > section.level1 > h1,
+#quarto-document-content > h1 {
+  margin-top: 2.4rem;
+  padding-bottom: .55rem;
+  border-bottom: 2px solid #e8eef2;
+  font-size: clamp(1.7rem, 3vw, 2.25rem);
+  font-weight: 820;
+  line-height: 1.2;
+}
+#quarto-document-content h2 { margin: 1.3rem 0 .7rem; font-size: clamp(1.2rem, 2vw, 1.55rem); font-weight: 790; line-height: 1.3; }
+#quarto-document-content h3 { font-size: 1.08rem; font-weight: 750; margin-top: 1.25rem; }
+p, li { color: #344b5e; }
+p { max-width: 92ch; }
+.qsr-scene-intro, .qsr-takeaway { max-width: none; }
+.qsr-scene-intro p, .qsr-takeaway p { max-width: 96ch; }
+strong { color: #203b4d; }
+a { color: var(--qsr-teal); }
+a:hover { color: #174f5e; }
+blockquote { margin: 18px 0; padding: 15px 18px; border-left: 4px solid var(--qsr-coral); border-radius: 0 10px 10px 0; background: #fff8f3; color: #4b5967; }
+
+/* Opening summary — built with Quarto fenced divs, not raw HTML snippets. */
+.qsr-hero {
+  padding: clamp(20px, 3vw, 30px);
+  margin: 0 0 20px;
+  border: 1px solid #dce7ed;
+  border-top: 5px solid var(--qsr-teal);
+  border-radius: 17px;
+  background: linear-gradient(135deg, #fff 0%, #f4fafb 100%);
+  box-shadow: var(--qsr-shadow);
+}
+.qsr-hero-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.qsr-eyebrow { color: var(--qsr-teal); font-size: .72rem; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+.qsr-location-tag { color: var(--qsr-muted); font-size: .8rem; font-weight: 700; }
+.qsr-hero h2 { margin: 0 0 10px; border: 0; font-size: clamp(1.35rem, 2.5vw, 1.95rem); line-height: 1.25; }
+.qsr-hero p { margin-bottom: 0; }
+.qsr-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0 16px; }
+.qsr-metric { min-width: 0; padding: 14px 15px; border: 1px solid #e2e9ee; border-radius: 12px; background: #fff; }
+.qsr-metric p { margin: 0 0 5px; }
+.qsr-metric .qsr-metric-label { display: block; color: #71808d; font-size: .68rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+.qsr-metric strong { display: block; color: var(--qsr-navy); font-size: clamp(1.35rem, 2.3vw, 1.9rem); line-height: 1.18; letter-spacing: -.035em; }
+.qsr-metric small { color: var(--qsr-muted); font-size: .78rem; line-height: 1.45; }
+.qsr-key-finding { padding: 14px 17px; border-radius: 12px; color: #f5f8fa; background: var(--qsr-navy); }
+.qsr-key-finding p { color: #f5f8fa; margin: 0; }
+.qsr-key-finding strong { color: #ffd093; }
+.qsr-jump-links { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 28px; padding: 0 0 18px; border-bottom: 1px solid var(--qsr-line); }
+.qsr-jump-links p { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; max-width: none; }
+.qsr-jump-links a { display: inline-block; padding: 7px 12px; border: 1px solid #dce5eb; border-radius: 999px; color: #24596b; background: #fff; font-size: .8rem; font-weight: 740; text-decoration: none; transition: background .16s ease; }
+.qsr-jump-links a:hover { background: #eaf4f6; }
+
+/* One panel per analytical question. No duplicate nested card around headings. */
+.qsr-scene {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  scroll-margin-top: 94px;
+  margin: 22px 0 30px;
+  padding: clamp(22px, 2.4vw, 40px);
+  border: 1px solid #dfe8ee;
+  border-top: 4px solid var(--qsr-teal);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: var(--qsr-shadow);
+}
+.qsr-scene > h2:first-child { margin: 0 0 12px; padding: 0 0 12px; border-bottom: 1px solid #e7edf1; color: var(--qsr-navy); font-size: clamp(1.35rem, 2.4vw, 1.85rem); font-weight: 820; letter-spacing: -.035em; }
+.qsr-scene-intro { color: #536879; font-size: 1.02rem; margin: 10px 0 20px; max-width: 96ch; }
+.qsr-scene-intro p { margin: 0; }
+.qsr-takeaway { margin: 18px 0 0; padding: 15px 18px; border: 1px solid #d2e5e9; border-left: 5px solid var(--qsr-coral); border-radius: 11px; background: #f5fafb; color: #344e5e; }
+.qsr-takeaway p { margin: 0; }
+.qsr-takeaway strong { color: var(--qsr-navy); }
+.callout { border-radius: 12px; box-shadow: none; border-color: #d9e8ed; background: #f7fafb; }
+.callout-note { border-left-color: var(--qsr-teal) !important; }
+
+/* Static ggplot figures; use the full report width and retain the scroll-reveal animation. */
+.figure, .quarto-figure, .cell-output-display {
+  display: block;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0;
+  margin: 20px 0 24px;
+  box-sizing: border-box;
+}
+.cell-output-display img, .quarto-figure img {
+  display: block;
+  width: 100% !important;
+  max-width: none !important;
+  height: auto !important;
+  margin: 0 auto;
+}
+.quarto-figure figcaption { color: #71808d; font-size: .9rem; text-align: center; }
+.qsr-scene .table-responsive, .qsr-scene .table { width: 100%; }
+.qsr-scene h3 { margin-top: 1.5rem; font-size: clamp(1.05rem, 1.4vw, 1.3rem); }
+
+/* Quiet, consistent collapsible source blocks on pages that expose code. */
+.cell details.code-fold { margin: 8px 0 14px; border: 1px solid #e1e8ee; background: #fbfcfd; border-radius: 9px; padding: 0 12px; }
+.cell details.code-fold > summary { padding: 8px 3px; color: #5c6d7a; cursor: pointer; font-size: .78rem; font-weight: 700; }
+.sourceCode { border-radius: 9px; overflow-x: auto; }
+.cell-output-stdout pre, .cell-output-stderr pre { border: 1px solid #e6ebef; border-radius: 9px; background: #f7f9fb; padding: 12px 14px; color: #435665; font-size: .8rem; line-height: 1.45; max-width: 100%; overflow-x: auto; }
+.table { width: 100%; --bs-table-striped-bg: #f6f9fb; border-color: #e1e8ee; font-size: .9rem; }
+.table thead th { color: var(--qsr-navy); background: #eef4f7; border-bottom-width: 1px; vertical-align: bottom; }
+.table tbody td { vertical-align: top; }
+.table caption { color: #6f7e8c; font-size: .8rem; padding-top: 8px; caption-side: top; }
+hr { border-color: #e2e8ee; opacity: 1; }
+
+/* CSS-only-style reveal behavior coordinated by a tiny local script; no library. */
+#qsr-reading-progress { position: fixed; top: 0; left: 0; width: 0; height: 4px; background: linear-gradient(90deg, var(--qsr-teal), var(--qsr-coral)); z-index: 2000; transition: width .08s linear; }
+#qsr-backtop { position: fixed; right: 18px; bottom: 18px; z-index: 900; border: 0; border-radius: 999px; padding: 10px 14px; color: #fff; background: var(--qsr-navy); box-shadow: 0 6px 18px rgba(22,56,75,.18); font-size: .8rem; font-weight: 750; opacity: 0; pointer-events: none; transform: translateY(5px); transition: opacity .2s ease, transform .2s ease; }
+#qsr-backtop.visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
+.qsr-motion-ready .qsr-chart-reveal { opacity: 0; transform: translateY(14px); transition: opacity .62s ease, transform .62s ease; }
+.qsr-motion-ready .qsr-chart-reveal.qsr-is-visible { opacity: 1; transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+@media (max-width: 800px) {
+  #quarto-content { padding-inline: 10px; }
+  main.content { padding: 10px 0 28px; margin: 6px auto 24px; }
+  .qsr-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .qsr-hero { padding: 18px; }
+  .qsr-scene { margin: 16px 0 22px; padding: 18px; border-radius: 13px; }
+  .qsr-scene .table { font-size: .84rem; }
+  .figure, .quarto-figure, .cell-output-display { margin: 14px 0 18px; }
+}
+@media (max-width: 480px) {
+  body { font-size: 15px; }
+  #quarto-content { padding-inline: 6px; }
+  .qsr-metrics { grid-template-columns: 1fr 1fr; }
+  .qsr-metric { padding: 11px; }
+  .qsr-jump-links a { font-size: .74rem; padding: 6px 9px; }
+  .qsr-scene { padding: 14px; border-radius: 11px; }
+  .qsr-scene > h2:first-child { font-size: 1.3rem; }
+}
+@media print {
+  body { background: #fff; }
+  #qsr-reading-progress, #qsr-backtop, .qsr-jump-links { display: none !important; }
+  #quarto-content { max-width: 100% !important; padding: 0 !important; }
+  main.content { max-width: 100% !important; width: 100% !important; padding: 0; border: 0; box-shadow: none; }
+  #quarto-document-content { max-width: 100% !important; width: 100% !important; }
+  .qsr-scene { break-inside: avoid; box-shadow: none; min-height: 0; }
+  .qsr-motion-ready .qsr-chart-reveal { opacity: 1 !important; transform: none !important; }
+}

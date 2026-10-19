@@ -1,0 +1,15 @@
+{
+  "hash": "66e0cf7fffe96b3cf289f3bbc2183524",
+  "result": {
+    "engine": "knitr",
+    "markdown": "---\ntitle: \"QSR Daily Demand\"\nsubtitle: \"Stage 1: from sales patterns to practical decisions\"\nauthor: \"Student Analyst\"\nformat:\n  revealjs:\n    theme: simple\n    slide-number: true\n    transition: fade\n    chalkboard: false\nexecute:\n  echo: false\n---\n\n\n\n## The business question\n\n**Where does demand concentrate, when does it change, and which relationships deserve attention?**\n\n- One selected restaurant: R07, Minneapolis\n- Daily item-level sales, 2021–2025\n- Descriptive analysis using the concepts covered in Weeks 1–5\n\n## What sells?\n\n- Drinks lead total recorded units.\n- Soft Drink Regular, French Fries Regular, and Classic Cheeseburger are among the leading individual items.\n- Category and item rankings help focus stock checks.\n\n**Business implication:** Start operational planning with the products that account for much of the recorded volume.\n\n## When does demand change?\n\n- Average daily demand is strongest in Jul and lowest in Jan.\n- Category-specific monthly lines help show whether every menu group follows the same pattern.\n- Weekday boxplots add the variation hidden by averages.\n\n**Business implication:** Use historical demand as a starting point for staffing and preparation—not as a guarantee for a particular day.\n\n## What relationships did we examine?\n\n- A correlation heatmap and follow-up scatterplot compare daily patterns for high-volume products.\n- Violin/boxplots compare promotional and non-promotional distributions by category.\n- Scatterplots test price and preparation time against average item-day quantity.\n- Faceted temperature plots and event comparisons add external context.\n\n**Interpretation:** Correlation does not prove causation. Product co-movement is not proof of same-transaction purchases.\n\n## Volume is not value\n\n- Drinks lead units.\n- Burgers lead estimated total food-cost margin, followed by Combos and Chicken.\n- The estimate uses listed price and food cost across the full history; it is not net profit.\n\n**Business implication:** Consider demand and unit economics together.\n\n## What should happen next?\n\n1. Protect availability of core items.\n2. Plan for seasonal and weekday variation.\n3. Evaluate promotions by category and compare like with like.\n4. Prepare for specific local events.\n5. Use follow-up tests before attributing changes to advertising or weather.\n\n::: {.callout-note}\nStage 1 ends with descriptive analysis and business recommendations. No machine-learning model is included.\n:::\n",
+    "supporting": [],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}

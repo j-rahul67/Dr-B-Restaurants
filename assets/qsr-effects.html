@@ -1,0 +1,62 @@
+<script>
+(function () {
+  function initQsrEffects() {
+    if (document.documentElement.dataset.qsrEffectsReady === "true") return;
+    document.documentElement.dataset.qsrEffectsReady = "true";
+
+    var progress = document.createElement("div");
+    progress.id = "qsr-reading-progress";
+    progress.setAttribute("aria-hidden", "true");
+    document.body.appendChild(progress);
+
+    var topButton = document.createElement("button");
+    topButton.id = "qsr-backtop";
+    topButton.type = "button";
+    topButton.textContent = "↑ Back to top";
+    topButton.setAttribute("aria-label", "Back to top");
+    document.body.appendChild(topButton);
+    topButton.addEventListener("click", function () {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    function updateProgress() {
+      var root = document.documentElement;
+      var maxScroll = Math.max(1, root.scrollHeight - root.clientHeight);
+      var scrollTop = window.scrollY || root.scrollTop || 0;
+      var pct = Math.max(0, Math.min(100, scrollTop / maxScroll * 100));
+      progress.style.width = pct + "%";
+      topButton.classList.toggle("visible", scrollTop > 550);
+    }
+    window.addEventListener("scroll", updateProgress, { passive: true });
+    window.addEventListener("resize", updateProgress);
+    updateProgress();
+
+    var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion || !("IntersectionObserver" in window)) return;
+
+    var chartOutputs = Array.prototype.slice.call(document.querySelectorAll(".cell-output-display"))
+      .filter(function (node) { return !!node.querySelector("img"); });
+    if (!chartOutputs.length) return;
+
+    document.documentElement.classList.add("qsr-motion-ready");
+    var observer = new IntersectionObserver(function (entries, obs) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("qsr-is-visible");
+          obs.unobserve(entry.target);
+        }
+      });
+    }, { root: null, threshold: 0.12, rootMargin: "0px 0px -5% 0px" });
+
+    chartOutputs.forEach(function (node) {
+      node.classList.add("qsr-chart-reveal");
+      observer.observe(node);
+    });
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initQsrEffects, { once: true });
+  } else {
+    initQsrEffects();
+  }
+})();
+</script>
