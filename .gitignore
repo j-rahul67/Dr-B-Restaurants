@@ -1,0 +1,25 @@
+# RStudio state
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+
+# Quarto caches / temporary intermediates
+.quarto/
+*_cache/
+*_files/*-cache/
+
+# Assigned raw/derived data: never commit source CSVs to GitHub
+/data/*.csv
+/data/raw/*.csv
+/data/processed/*
+!/data/README.md
+!/data/raw/.gitkeep
+!/data/processed/.gitkeep
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+
+/.quarto/
+**/*.quarto_ipynb

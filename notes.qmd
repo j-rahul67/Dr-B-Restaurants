@@ -1,0 +1,23 @@
+---
+title: "Stage 1 notes"
+subtitle: "Scope and assumptions in brief"
+---
+
+## What is included
+
+- Eight source tables needed for the selected QSR questions.
+- Data quality checks, menu rankings, seasonal patterns, product correlations, promotion distributions, menu economics, and relevant context checks.
+- `ggplot2` graph types and faceting approaches covered in Weeks 1–5.
+- A scrolling report with a clear question, graph, and concise takeaway for each part of the story.
+
+## What is not included
+
+- Machine learning or a prediction model.
+- Charts for every possible variable when they do not help answer the business question.
+- Claims that correlations prove causes or that daily co-movement means two items were bought together.
+
+## Assumptions to keep visible
+
+- Missing sales quantities stay missing in item-level analysis; daily totals use recorded quantities.
+- The listed price and food-cost values are applied to the entire quantity history only to support a comparison, not historical financial accounting.
+- Results describe R07 in Minneapolis, not every restaurant in the chain.

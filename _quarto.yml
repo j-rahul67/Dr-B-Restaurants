@@ -1,0 +1,69 @@
+project:
+  type: website
+  output-dir: _site
+  render:
+    - index.qmd
+    - data.qmd
+    - eda.qmd
+    - report.qmd
+    - slides.qmd
+    - quarto-guide.qmd
+    - github-setup.qmd
+    - notes.qmd
+
+website:
+  title: "QSR Daily Demand"
+  description: "A focused Stage 1 analysis of daily restaurant demand."
+  navbar:
+    background: "#16384B"
+    foreground: "#FFFFFF"
+    left:
+      - text: "Home"
+        href: index.qmd
+      - text: "Data"
+        href: data.qmd
+      - text: "Exploration"
+        href: eda.qmd
+      - text: "Analysis report"
+        href: report.qmd
+      - text: "Slides"
+        href: slides.qmd
+    right:
+      - text: "Project guide"
+        menu:
+          - text: "Quarto guide"
+            href: quarto-guide.qmd
+          - text: "GitHub / Netlify"
+            href: github-setup.qmd
+          - text: "Project notes"
+            href: notes.qmd
+  page-footer:
+    left: "OMIS 681 · Stage 1"
+    right: "R · tidyverse · ggplot2 · Quarto"
+  search: true
+
+format:
+  html:
+    theme: flatly
+    page-layout: full
+    grid:
+      sidebar-width: 0px
+      body-width: 1600px
+      margin-width: 0px
+      gutter-width: 20px
+    css: assets/qsr-theme.css
+    toc: false
+    number-sections: false
+    code-fold: true
+    code-summary: "Show R code"
+    code-tools: false
+    smooth-scroll: true
+    include-after-body: assets/qsr-effects.html
+    anchor-sections: true
+    link-external-newwindow: true
+
+execute:
+  echo: false
+  warning: false
+  message: false
+  freeze: auto

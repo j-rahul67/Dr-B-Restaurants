@@ -1,0 +1,64 @@
+---
+title: "QSR Daily Demand"
+subtitle: "Five years of sales, clearer business decisions"
+---
+
+:::: {.qsr-hero}
+[OMIS 681 · Stage 1 · Descriptive analysis]{.qsr-eyebrow}
+
+## Where is demand strongest—and what should the owner do next?
+
+I use five years of daily menu-item sales for **R07 in Minneapolis** to answer three practical questions: what sells most, when demand changes, and which relationships are worth investigating.
+
+:::: {.qsr-metrics}
+::: {.qsr-metric}
+[Study period]{.qsr-metric-label}
+
+**2021–2025**
+
+Five calendar years
+:::
+::: {.qsr-metric}
+[Sales records]{.qsr-metric-label}
+
+**91,300**
+
+One row per menu item and date
+:::
+::: {.qsr-metric}
+[Menu items]{.qsr-metric-label}
+
+**50**
+
+Eight menu categories
+:::
+::: {.qsr-metric}
+[Location]{.qsr-metric-label}
+
+**R07**
+
+Minneapolis
+:::
+::::
+
+::: {.qsr-key-finding}
+**The central finding:** Drinks lead unit demand, while Burgers lead estimated total food-cost margin. Volume and value point to different decisions.
+:::
+::::
+
+## Follow the analysis
+
+- **[Data](data.qmd)** — the source tables used and how they connect.
+- **[Exploration](eda.qmd)** — understand the sales rows, establish quantity baselines, compare groups, and choose charts based on the question.
+- **[Analysis report](report.qmd)** — the business story, relevant graphs, and practical takeaways.
+- **[Slides](slides.qmd)** — a concise presentation of the main findings.
+
+## The story in brief
+
+**What sells:** drinks and a small group of familiar items account for much of the recorded volume.
+
+**When it sells:** demand rises into summer, and daily patterns vary by weekday and category.
+
+**What is worth testing:** promotions differ by category; weather and marketing show associations that need careful interpretation; price and preparation time show little overall linear relationship with average item-day quantity.
+
+The report uses the graph types covered in Weeks 1–5, including ranking bars, lines, distributions, scatterplots, correlation displays, and faceting. It stays within descriptive analysis and does not add machine learning.

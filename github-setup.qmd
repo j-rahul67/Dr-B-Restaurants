@@ -1,0 +1,32 @@
+---
+title: "GitHub and Netlify"
+subtitle: "Publish the report without publishing private input data"
+---
+
+## GitHub repository
+
+1. Create the project repository from the instructor's OMIS 681 template if your assignment requires it.
+2. Open this folder through `QSR_Stage1_Project.Rproj` in RStudio.
+3. Confirm `data/*.csv` is ignored by Git before your first commit.
+4. Invite `biagiopalese` as a collaborator if the class template instructions require it.
+5. Commit your source files and rendered `_site/` after rendering; never commit the raw assigned CSVs.
+
+## Netlify
+
+Import the GitHub repository into Netlify. This project includes `netlify.toml` with the `_site` folder as the publish directory. Render the site locally and commit `_site/` before publishing. Check the live site on desktop and mobile.
+
+## End-of-session routine
+
+```bash
+quarto render
+git status
+git add -A
+git commit -m "update QSR analysis"
+git push
+```
+
+Before committing, review `git status --short` to ensure no raw CSV files are staged. The `.gitignore` in this project ignores the assigned data files by name and extension.
+
+## Scope and transparency
+
+The report describes patterns in the selected restaurant's data. Promotion, weather, events, and marketing comparisons are observational. They do not establish causation. The margin metric is an estimated price-minus-food-cost measure, not net profit.

@@ -1,0 +1,79 @@
+---
+title: "QSR Daily Demand"
+subtitle: "Stage 1: from sales patterns to practical decisions"
+author: "Student Analyst"
+format:
+  revealjs:
+    theme: simple
+    slide-number: true
+    transition: fade
+    chalkboard: false
+execute:
+  echo: false
+---
+
+```{r}
+#| include: false
+library(tidyverse)
+source("R/load_data.R")
+qsr_data <- load_qsr_data("data")
+sales <- qsr_data$sales |> mutate(date = as.Date(date))
+calendar <- qsr_data$calendar |> mutate(date = as.Date(date))
+sales_daily <- sales |> group_by(date) |> summarise(daily_demand = sum(quantity, na.rm = TRUE), .groups = "drop") |> left_join(calendar |> select(date, month), by = "date")
+monthly <- sales_daily |> group_by(month) |> summarise(avg = mean(daily_demand), .groups = "drop") |> mutate(month = factor(month, levels = 1:12, labels = month.abb))
+peak_month <- as.character(monthly |> slice_max(avg, n = 1, with_ties = FALSE) |> pull(month))
+low_month <- as.character(monthly |> slice_min(avg, n = 1, with_ties = FALSE) |> pull(month))
+```
+
+## The business question
+
+**Where does demand concentrate, when does it change, and which relationships deserve attention?**
+
+- One selected restaurant: R07, Minneapolis
+- Daily item-level sales, 2021–2025
+- Descriptive analysis using the concepts covered in Weeks 1–5
+
+## What sells?
+
+- Drinks lead total recorded units.
+- Soft Drink Regular, French Fries Regular, and Classic Cheeseburger are among the leading individual items.
+- Category and item rankings help focus stock checks.
+
+**Business implication:** Start operational planning with the products that account for much of the recorded volume.
+
+## When does demand change?
+
+- Average daily demand is strongest in `r peak_month` and lowest in `r low_month`.
+- Category-specific monthly lines help show whether every menu group follows the same pattern.
+- Weekday boxplots add the variation hidden by averages.
+
+**Business implication:** Use historical demand as a starting point for staffing and preparation—not as a guarantee for a particular day.
+
+## What relationships did we examine?
+
+- A correlation heatmap and follow-up scatterplot compare daily patterns for high-volume products.
+- Violin/boxplots compare promotional and non-promotional distributions by category.
+- Scatterplots test price and preparation time against average item-day quantity.
+- Faceted temperature plots and event comparisons add external context.
+
+**Interpretation:** Correlation does not prove causation. Product co-movement is not proof of same-transaction purchases.
+
+## Volume is not value
+
+- Drinks lead units.
+- Burgers lead estimated total food-cost margin, followed by Combos and Chicken.
+- The estimate uses listed price and food cost across the full history; it is not net profit.
+
+**Business implication:** Consider demand and unit economics together.
+
+## What should happen next?
+
+1. Protect availability of core items.
+2. Plan for seasonal and weekday variation.
+3. Evaluate promotions by category and compare like with like.
+4. Prepare for specific local events.
+5. Use follow-up tests before attributing changes to advertising or weather.
+
+::: {.callout-note}
+Stage 1 ends with descriptive analysis and business recommendations. No machine-learning model is included.
+:::

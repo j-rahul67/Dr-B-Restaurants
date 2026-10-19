@@ -1,0 +1,21 @@
+---
+title: "Quarto guide"
+subtitle: "How to run and update the Stage 1 project"
+---
+
+## The project workflow
+
+1. Extract the project ZIP to a folder on your computer.
+2. Copy the eight required original CSV files into the project's `data/` folder. See [Data inventory](data.qmd).
+3. Open `QSR_Stage1_Project.Rproj` in RStudio. Do not open a loose `.qmd` file as the project.
+4. In the RStudio Console, run `source("R/install_packages.R")` once to install missing R packages.
+5. Run `source("R/check_project.R")` and confirm all eight required tables load.
+6. Open `report.qmd` and select **Render**, or run `quarto render` in the Terminal to build the website.
+7. Preview the rendered site from `_site/index.html`.
+
+## Chart display and animation
+
+The graphs are constructed with `ggplot2` and rendered as static images. A small local script applies a gentle fade-and-rise reveal when a chart enters the viewport. This is a visual transition only: the graphs do not support hover, zoom, pan, or toolbar actions, and the animation uses no third-party chart library. The analysis and graph code remain in `report.qmd` and `eda.qmd` for reproducibility.
+## Rendering and sharing
+
+`quarto render` places the compiled website in `_site/`. Keep that output and its supporting resource folders together when publishing. The project is configured for a static site deployment; the source CSVs remain local and must not be committed to a public repository. The preview `interactive_preview.html` is a self-contained reference page, not a replacement for rendering the QMD report against the raw tables.

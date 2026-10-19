@@ -1,0 +1,804 @@
+---
+title: "Understanding Restaurant Demand"
+subtitle: "A focused story from sales volume to business decisions"
+author: "Student Analyst"
+format:
+  html:
+    toc: false
+    number-sections: false
+    anchor-sections: true
+    smooth-scroll: true
+    code-fold: false
+    code-tools: false
+    fig-width: 15
+    fig-height: 7
+    fig-dpi: 160
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+#| include: false
+library(tidyverse)
+library(scales)
+library(ggrepel)
+source("R/load_data.R")
+source("R/plot_helpers.R")
+
+qsr_data <- load_qsr_data("data")
+sales <- qsr_data$sales |> mutate(date = as.Date(date)) |> filter(restaurant_id == "R07")
+restaurants <- qsr_data$restaurants
+menu_items <- qsr_data$menu_items
+calendar <- qsr_data$calendar |> mutate(date = as.Date(date))
+weather <- qsr_data$weather |> mutate(date = as.Date(date))
+events <- qsr_data$events |> mutate(date = as.Date(date))
+menu_item_details <- qsr_data$menu_item_details
+marketing_spend <- qsr_data$marketing_spend
+
+r07_city <- restaurants |> filter(restaurant_id == "R07") |> pull(city) |> first()
+
+sales_menu_all <- sales |>
+  left_join(menu_items |> select(menu_item_id, menu_item_name, category, unit_price), by = "menu_item_id")
+sales_menu <- sales_menu_all |> filter(!is.na(quantity))
+
+sales_daily <- sales |>
+  group_by(date) |>
+  summarise(daily_demand = sum(quantity, na.rm = TRUE), .groups = "drop") |>
+  left_join(
+    calendar |> select(date, day_of_week, day_of_week_num, is_weekend, month, year, is_holiday, holiday_name),
+    by = "date"
+  )
+
+weather_r07 <- weather |>
+  filter(city == r07_city) |>
+  mutate(
+    avg_temp_f = if_else(avg_temp_f == -99, NA_real_, as.numeric(avg_temp_f)),
+    precip_inches = as.numeric(precip_inches),
+    precip_type = stringr::str_to_title(precip_type)
+  ) |>
+  select(date, avg_temp_f, precip_inches, precip_type)
+
+events_r07 <- events |>
+  filter(restaurant_id == "R07") |>
+  transmute(
+    date,
+    event_group = if_else(
+      is_special_event == 1 & !is.na(special_event_name) & special_event_name != "",
+      as.character(special_event_name),
+      "No special event"
+    )
+  )
+
+daily_context <- sales_daily |>
+  left_join(weather_r07, by = "date") |>
+  left_join(events_r07, by = "date") |>
+  mutate(
+    day_of_week = factor(day_of_week, levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")),
+    season = factor(
+      case_when(
+        month %in% c(12, 1, 2) ~ "Winter",
+        month %in% 3:5 ~ "Spring",
+        month %in% 6:8 ~ "Summer",
+        TRUE ~ "Fall"
+      ),
+      levels = c("Winter", "Spring", "Summer", "Fall")
+    )
+  )
+
+item_summary <- sales_menu |>
+  group_by(menu_item_id, menu_item_name, category, unit_price) |>
+  summarise(
+    total_quantity = sum(quantity, na.rm = TRUE),
+    average_item_day_quantity = mean(quantity, na.rm = TRUE),
+    item_day_observations = n(),
+    .groups = "drop"
+  ) |>
+  left_join(
+    menu_item_details |> select(menu_item_id, food_cost_per_unit, prep_minutes, is_seasonal),
+    by = "menu_item_id"
+  ) |>
+  mutate(
+    unit_margin = unit_price - food_cost_per_unit,
+    estimated_total_margin = total_quantity * unit_margin
+  )
+
+category_demand <- sales_menu |>
+  group_by(category) |>
+  summarise(
+    total_quantity = sum(quantity, na.rm = TRUE),
+    average_item_day_quantity = mean(quantity, na.rm = TRUE),
+    menu_items = n_distinct(menu_item_id),
+    .groups = "drop"
+  ) |>
+  arrange(desc(total_quantity))
+
+top_items <- item_summary |> arrange(desc(total_quantity)) |> slice_head(n = 10)
+top_item_names <- top_items |> slice_head(n = 8) |> pull(menu_item_name)
+
+month_summary <- daily_context |>
+  group_by(month) |>
+  summarise(
+    average_daily_demand = mean(daily_demand, na.rm = TRUE),
+    median_daily_demand = median(daily_demand, na.rm = TRUE),
+    days = n(),
+    .groups = "drop"
+  ) |>
+  mutate(month_label = factor(month, levels = 1:12, labels = month.abb))
+peak_month <- month_summary |> slice_max(average_daily_demand, n = 1, with_ties = FALSE) |> pull(month_label) |> as.character()
+low_month <- month_summary |> slice_min(average_daily_demand, n = 1, with_ties = FALSE) |> pull(month_label) |> as.character()
+
+category_month <- sales_menu_all |>
+  group_by(date, category) |>
+  summarise(
+    category_units = if (all(is.na(quantity))) NA_real_ else sum(quantity, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  left_join(calendar |> select(date, month), by = "date") |>
+  group_by(category, month) |>
+  summarise(average_daily_category_units = mean(category_units, na.rm = TRUE), .groups = "drop") |>
+  mutate(month_label = factor(month, levels = 1:12, labels = month.abb),
+         category = factor(category, levels = names(category_colors)))
+
+weekday_summary <- daily_context |>
+  group_by(day_of_week) |>
+  summarise(
+    average_daily_demand = mean(daily_demand, na.rm = TRUE),
+    median_daily_demand = median(daily_demand, na.rm = TRUE),
+    days = n(),
+    .groups = "drop"
+  )
+strongest_weekday <- weekday_summary |> slice_max(average_daily_demand, n = 1, with_ties = FALSE) |> pull(day_of_week) |> as.character()
+weakest_weekday <- weekday_summary |> slice_min(average_daily_demand, n = 1, with_ties = FALSE) |> pull(day_of_week) |> as.character()
+
+# Daily correlation matrix for the eight highest-volume items; missing quantities stay missing.
+product_daily_wide <- sales_menu |>
+  filter(menu_item_name %in% top_item_names) |>
+  group_by(date, menu_item_name) |>
+  summarise(quantity = sum(quantity, na.rm = TRUE), .groups = "drop") |>
+  mutate(menu_item_name = factor(menu_item_name, levels = top_item_names)) |>
+  tidyr::pivot_wider(names_from = menu_item_name, values_from = quantity) |>
+  arrange(date)
+product_matrix <- product_daily_wide |> select(all_of(top_item_names)) |> as.data.frame()
+product_cor <- stats::cor(product_matrix, use = "pairwise.complete.obs")
+product_cor_long <- as.data.frame(as.table(product_cor)) |>
+  as_tibble() |>
+  rename(item_x = Var1, item_y = Var2, correlation = Freq) |>
+  mutate(
+    item_x = factor(item_x, levels = top_item_names),
+    item_y = factor(item_y, levels = rev(top_item_names))
+  )
+pair_index <- which(upper.tri(product_cor), arr.ind = TRUE)
+pair_candidates <- tibble(
+  item_a = rownames(product_cor)[pair_index[, 1]],
+  item_b = colnames(product_cor)[pair_index[, 2]],
+  correlation = product_cor[pair_index]
+)
+chosen_pair <- pair_candidates |> slice_max(order_by = abs(correlation), n = 1, with_ties = FALSE)
+product_a <- chosen_pair$item_a[[1]]
+product_b <- chosen_pair$item_b[[1]]
+product_pair_r <- chosen_pair$correlation[[1]]
+product_pair_data <- product_daily_wide |>
+  select(date, all_of(c(product_a, product_b))) |>
+  filter(!is.na(.data[[product_a]]), !is.na(.data[[product_b]]))
+
+sales_menu_promo <- sales_menu |>
+  mutate(
+    promotion_status = factor(
+      if_else(is_promotion == 1, "Promotion", "No promotion"),
+      levels = c("No promotion", "Promotion")
+    ),
+    promotion_code = if_else(is_promotion == 1, "promo", "no_promo")
+  )
+promotion_overall <- sales_menu_promo |>
+  group_by(promotion_status) |>
+  summarise(
+    average_quantity = mean(quantity, na.rm = TRUE),
+    median_quantity = median(quantity, na.rm = TRUE),
+    observations = n(),
+    .groups = "drop"
+  ) |>
+  mutate(observation_share = observations / sum(observations))
+promotion_by_category <- sales_menu_promo |>
+  group_by(category, promotion_status, promotion_code) |>
+  summarise(
+    median_quantity = median(quantity, na.rm = TRUE),
+    average_quantity = mean(quantity, na.rm = TRUE),
+    observations = n(),
+    .groups = "drop"
+  )
+promotion_table <- promotion_by_category |>
+  select(category, promotion_code, median_quantity, observations) |>
+  pivot_wider(names_from = promotion_code, values_from = c(median_quantity, observations)) |>
+  transmute(
+    Category = category,
+    `Median · no promotion` = median_quantity_no_promo,
+    `Median · promotion` = median_quantity_promo,
+    `Promoted item-days` = observations_promo
+  )
+
+category_economics <- item_summary |>
+  group_by(category) |>
+  summarise(
+    total_quantity = sum(total_quantity, na.rm = TRUE),
+    average_item_day_quantity = mean(average_item_day_quantity, na.rm = TRUE),
+    average_unit_margin = mean(unit_margin, na.rm = TRUE),
+    estimated_total_margin = sum(estimated_total_margin, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+season_correlations <- daily_context |>
+  filter(!is.na(avg_temp_f), !is.na(daily_demand)) |>
+  group_by(season) |>
+  summarise(days = n(), correlation = cor(avg_temp_f, daily_demand), .groups = "drop")
+overall_temperature_correlation <- cor(daily_context$avg_temp_f, daily_context$daily_demand, use = "complete.obs")
+
+event_summary <- daily_context |>
+  mutate(event_group = if_else(is.na(event_group) | event_group == "", "No special event", event_group)) |>
+  group_by(event_group) |>
+  summarise(
+    average_daily_demand = mean(daily_demand, na.rm = TRUE),
+    median_daily_demand = median(daily_demand, na.rm = TRUE),
+    days = n(),
+    .groups = "drop"
+  ) |>
+  arrange(desc(average_daily_demand)) |>
+  mutate(baseline_type = if_else(event_group == "No special event", "Regular day", "Local event"))
+
+price_correlation <- cor(item_summary$unit_price, item_summary$average_item_day_quantity, use = "complete.obs")
+prep_correlation <- cor(item_summary$prep_minutes, item_summary$average_item_day_quantity, use = "complete.obs")
+precipitation_correlation <- cor(daily_context$precip_inches, daily_context$daily_demand, use = "complete.obs")
+
+monthly_marketing <- daily_context |>
+  group_by(year, month) |>
+  summarise(monthly_average_daily_demand = mean(daily_demand, na.rm = TRUE), .groups = "drop") |>
+  left_join(
+    marketing_spend |> filter(restaurant_id == "R07") |> select(year, month, local_ad_spend_usd, social_posts),
+    by = c("year", "month")
+  ) |>
+  mutate(year = factor(year))
+ad_spend_correlation <- cor(monthly_marketing$local_ad_spend_usd, monthly_marketing$monthly_average_daily_demand, use = "complete.obs")
+social_posts_correlation <- cor(monthly_marketing$social_posts, monthly_marketing$monthly_average_daily_demand, use = "complete.obs")
+```
+
+:::: {.qsr-hero}
+[Business analysis · R07 · 2021–2025]{.qsr-eyebrow}
+
+## What sells most, when does demand rise, and which relationships deserve attention?
+
+The story moves from the menu, to the timing of demand, and then to a few factors that may help explain differences. Each chart is included because it answers one of these questions.
+
+:::: {.qsr-metrics}
+::: {.qsr-metric}
+[Sales records]{.qsr-metric-label}
+
+**`r scales::comma(nrow(sales))`**
+
+Daily item-level observations
+:::
+::: {.qsr-metric}
+[Distinct menu items]{.qsr-metric-label}
+
+**`r dplyr::n_distinct(sales$menu_item_id)`**
+
+Across eight categories
+:::
+::: {.qsr-metric}
+[Highest-demand month]{.qsr-metric-label}
+
+**`r peak_month`**
+
+By average daily units
+:::
+::: {.qsr-metric}
+[Strongest weekday]{.qsr-metric-label}
+
+**`r strongest_weekday`**
+
+By average daily units
+:::
+::::
+
+::: {.qsr-key-finding}
+**Main takeaway:** Drinks lead unit demand, while Burgers lead estimated total food-cost margin. Inventory priorities and menu-economics priorities are not the same.
+:::
+::::
+
+::: {.qsr-jump-links}
+[What sells](#what-sells)
+[When demand changes](#when-demand-changes)
+[Product relationships](#product-relationships)
+[Promotions](#promotions)
+[Menu economics](#menu-economics)
+[Weather and events](#weather-events)
+[Business decisions](#recommendations)
+:::
+
+# What sells? {#what-sells}
+
+:::: {.qsr-scene}
+## Which menu categories account for the most units?
+
+::: {.qsr-scene-intro}
+This ranking starts with the broad menu mix. It shows where recorded unit volume is concentrated across the five-year period.
+:::
+
+```{r}
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show R code"
+p_category_demand <- ggplot(
+  data = category_demand |> mutate(category = forcats::fct_reorder(category, total_quantity)),
+  mapping = aes(x = category, y = total_quantity, fill = category)
+) +
+  geom_col(width = 0.72, show.legend = FALSE) +
+  geom_text(aes(label = scales::comma(total_quantity)), hjust = -0.12, size = 4) +
+  coord_flip(clip = "off") +
+  scale_fill_manual(values = category_colors, guide = "none") +
+  scale_y_continuous(labels = label_comma(), expand = expansion(mult = c(0, 0.17))) +
+  labs(x = NULL, y = "Total recorded units") +
+  theme_business
+show_chart(p_category_demand)
+```
+
+::: {.qsr-takeaway}
+**Takeaway:** Drinks lead recorded quantity, followed by Burgers, Sides, and Chicken. Volume helps prioritize availability, but it does not show which categories leave the most after food costs.
+:::
+::::
+
+:::: {.qsr-scene}
+## Which individual products stand out?
+
+::: {.qsr-scene-intro}
+The category ranking can hide individual best sellers. This chart ranks the ten menu items with the highest total recorded quantity.
+:::
+
+```{r}
+#| fig-height: 8
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show R code"
+p_top_items <- ggplot(
+  data = top_items |> mutate(menu_item_name = forcats::fct_reorder(menu_item_name, total_quantity)),
+  mapping = aes(x = menu_item_name, y = total_quantity, fill = category)
+) +
+  geom_col(width = 0.72) +
+  geom_text(aes(label = scales::comma(total_quantity)), hjust = -0.12, size = 3.7) +
+  coord_flip(clip = "off") +
+  scale_fill_manual(values = category_colors, name = "Category") +
+  scale_y_continuous(labels = label_comma(), expand = expansion(mult = c(0, 0.18))) +
+  labs(x = NULL, y = "Total recorded units") +
+  theme_business
+show_chart(p_top_items)
+```
+
+::: {.qsr-takeaway}
+**Takeaway:** Soft Drink Regular, French Fries Regular, and Classic Cheeseburger lead individual-item demand. These products are sensible starting points for availability and replenishment checks during busy periods.
+:::
+::::
+
+# When does demand change? {#when-demand-changes}
+
+:::: {.qsr-scene}
+## Which months have the strongest average daily demand?
+
+::: {.qsr-scene-intro}
+A line chart is appropriate for the ordered months. It shows the recurring seasonal rhythm without plotting every daily fluctuation.
+:::
+
+```{r}
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show R code"
+p_monthly_demand <- ggplot(month_summary, aes(x = month_label, y = average_daily_demand, group = 1)) +
+  geom_line(color = qsr_teal, linewidth = 1.25) +
+  geom_point(color = qsr_coral, size = 3.4) +
+  scale_y_continuous(labels = label_comma()) +
+  labs(x = "Month", y = "Average daily recorded units") +
+  theme_business
+show_chart(p_monthly_demand)
+```
+
+::: {.qsr-takeaway}
+**Takeaway:** Demand peaks in `r peak_month` and is lowest in `r low_month`. The recurring pattern can guide seasonal preparation and stock reviews, but it is not a guarantee for an individual day.
+:::
+::::
+
+:::: {.qsr-scene}
+## Do categories follow the same seasonal pattern?
+
+::: {.qsr-scene-intro}
+The overall line hides category differences. Each panel below shows average daily category quantity by month, using the same month order and a separate vertical scale for readability.
+:::
+
+```{r}
+#| fig-width: 15
+#| fig-height: 11
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show R code"
+p_category_month <- ggplot(category_month, aes(x = month_label, y = average_daily_category_units, group = 1)) +
+  geom_line(color = qsr_teal, linewidth = 1.0) +
+  geom_point(color = qsr_coral, size = 2.3) +
+  facet_wrap(vars(category), scales = "free_y", ncol = 4) +
+  scale_y_continuous(labels = label_comma()) +
+  labs(x = "Month", y = "Average daily category units",
+       caption = "Panels use separate y-axes: compare each category's shape, not the height across panels.") +
+  theme_business +
+  theme(strip.text = element_text(face = "bold", size = 12), axis.text.x = element_text(size = 10.5), panel.spacing = grid::unit(1.1, "lines"))
+show_chart(p_category_month)
+```
+
+::: {.qsr-takeaway}
+**Takeaway:** The small multiples show whether categories share the overall summer pattern or differ in timing. This helps avoid assuming that every product group needs the same seasonal plan.
+:::
+::::
+
+:::: {.qsr-scene}
+## Are the busiest weekdays consistently busy?
+
+::: {.qsr-scene-intro}
+A boxplot compares the distribution of total daily units across weekdays. Unlike averages alone, it also shows the median, spread, and unusually high or low days.
+:::
+
+```{r}
+#| fig-height: 7
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show R code"
+p_weekday_distribution <- ggplot(daily_context, aes(x = day_of_week, y = daily_demand)) +
+  geom_boxplot(fill = "#CFE5E8", color = qsr_teal, outlier.alpha = 0.45, linewidth = 0.6) +
+  scale_y_continuous(labels = label_comma()) +
+  labs(x = NULL, y = "Daily recorded units") +
+  theme_business +
+  theme(panel.grid.major.x = element_blank())
+show_chart(p_weekday_distribution)
+```
+
+::: {.qsr-takeaway}
+**Takeaway:** Use the full spread of past days, not only the average weekday, when discussing staffing and preparation. Weekend patterns are useful planning context, but busy and quiet days still vary within each weekday.
+:::
+::::
+
+# Do top products move together? {#product-relationships}
+
+:::: {.qsr-scene}
+## Which high-volume products share similar daily patterns?
+
+::: {.qsr-scene-intro}
+A correlation heatmap compares daily quantities for the eight highest-volume items. It is a discovery tool: positive values indicate that two items tend to rise and fall together, while values near zero indicate little overall linear co-movement.
+:::
+
+```{r}
+#| fig-width: 15
+#| fig-height: 10
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show R code"
+p_product_correlation <- ggplot(product_cor_long, aes(x = item_x, y = item_y, fill = correlation)) +
+  geom_tile(color = "white", linewidth = 0.7) +
+  geom_text(aes(label = number(correlation, accuracy = 0.01)), size = 3.8, color = "#203447") +
+  scale_fill_gradient2(low = "#3C7DA4", mid = "#F6F8FA", high = "#D96D5B", midpoint = 0,
+                       limits = c(-1, 1), name = "Pearson r") +
+  scale_x_discrete(labels = function(x) stringr::str_wrap(x, width = 18)) +
+  scale_y_discrete(labels = function(x) stringr::str_wrap(x, width = 18)) +
+  labs(x = NULL, y = NULL,
+       caption = "Based on matched daily observations. Shared weekends or seasonal changes can contribute to co-movement.") +
+  theme_business +
+  theme(axis.text.x = element_text(angle = 35, hjust = 1, size = 10.5), axis.text.y = element_text(size = 10.5),
+        panel.grid = element_blank(), legend.position = "right", plot.margin = margin(12, 24, 24, 12))
+show_chart(p_product_correlation)
+```
+
+::: {.qsr-takeaway}
+**Takeaway:** The heatmap helps identify product pairs worth a closer look. It measures similar daily patterns, not whether customers bought the products together on the same transaction.
+:::
+::::
+
+:::: {.qsr-scene}
+## Does the strongest product pair show a clear pattern?
+
+::: {.qsr-scene-intro}
+The scatterplot follows up on the strongest absolute correlation in the heatmap. Each point is one day with recorded quantities for both products; the line summarizes their overall linear relationship.
+:::
+
+The pair selected from the current data is **`r product_a`** and **`r product_b`** (Pearson *r* = **`r round(product_pair_r, 2)`**).
+
+```{r}
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show R code"
+p_product_pair <- ggplot(product_pair_data, aes(x = .data[[product_a]], y = .data[[product_b]])) +
+  geom_point(color = qsr_teal, alpha = 0.25, size = 1.6) +
+  geom_smooth(method = "lm", formula = y ~ x, se = TRUE, color = qsr_coral, linewidth = 1) +
+  scale_x_continuous(labels = label_comma()) +
+  scale_y_continuous(labels = label_comma()) +
+  labs(x = paste("Daily units:", product_a), y = paste("Daily units:", product_b),
+       caption = "Association does not establish that one product causes demand for the other.") +
+  theme_business
+show_chart(p_product_pair)
+```
+
+::: {.qsr-takeaway}
+**Takeaway:** The points and smoothing line show whether the selected pair has a consistent pattern or substantial scatter. Treat this as a replenishment-planning clue, not evidence of customer-level product bundling.
+:::
+::::
+
+# Are promotions associated with higher demand? {#promotions}
+
+:::: {.qsr-scene}
+## Compare typical quantity and the full distribution
+
+::: {.qsr-scene-intro}
+The summary compares mean and median quantity. The violin shapes with overlaid boxplots add information about spread and concentration within each category. Both views matter because promotional item-days are much less common than non-promotional observations.
+:::
+
+```{r}
+promotion_overall_display <- promotion_overall |>
+  transmute(
+    `Item-day status` = promotion_status,
+    `Average quantity` = round(average_quantity, 1),
+    `Median quantity` = round(median_quantity, 1),
+    `Item-days` = comma(observations),
+    `Share of observations` = percent(observation_share, accuracy = 0.1)
+  )
+knitr::kable(promotion_overall_display, caption = "Promotion and non-promotion summary", align = c("l", "r", "r", "r", "r"))
+
+knitr::kable(promotion_table, caption = "Category median quantities and promoted sample sizes", align = c("l", "r", "r", "r"))
+```
+
+```{r}
+#| fig-width: 15
+#| fig-height: 10
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show R code"
+p_promotion_distribution <- ggplot(
+  data = sales_menu_promo |> mutate(category = factor(category, levels = names(category_colors))),
+  mapping = aes(x = promotion_status, y = quantity, fill = promotion_status)
+) +
+  geom_violin(trim = TRUE, scale = "width", alpha = 0.62, color = NA) +
+  geom_boxplot(width = 0.15, outlier.shape = NA, fill = "white", color = "#526575", linewidth = 0.45) +
+  facet_wrap(vars(category), scales = "free_y", ncol = 4) +
+  scale_fill_manual(values = c("No promotion" = "#9AA8B3", "Promotion" = qsr_coral), name = NULL) +
+  scale_y_sqrt(labels = label_comma()) +
+  labs(x = NULL, y = "Quantity per item-day (square-root scale)",
+       caption = "Tick labels remain in original units. Each category has its own y-axis; all observed quantities are retained.") +
+  theme_business +
+  theme(strip.text = element_text(face = "bold", size = 12), axis.text.x = element_text(size = 10.5),
+        panel.spacing = grid::unit(1.2, "lines"), panel.grid.major.x = element_blank())
+show_chart(p_promotion_distribution)
+```
+
+::: {.qsr-takeaway}
+**Takeaway:** Promoted item-days have higher overall average and median quantities, but they account for only about `r scales::percent(promotion_overall$observation_share[promotion_overall$promotion_status == "Promotion"], accuracy = 0.1)` of observations. Differences vary across categories, and this descriptive comparison does not prove that promotions caused higher sales.
+:::
+::::
+
+# Does more demand mean more menu value? {#menu-economics}
+
+:::: {.qsr-scene}
+## Compare volume with estimated food-cost margin
+
+::: {.qsr-scene-intro}
+The horizontal position shows average item-day demand by category, the vertical position shows average listed unit margin, and bubble size represents estimated total food-cost margin. This puts volume and simple economics in one view.
+:::
+
+```{r}
+#| fig-height: 8.5
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show R code"
+p_category_economics <- ggplot(category_economics, aes(x = average_item_day_quantity, y = average_unit_margin, size = estimated_total_margin, color = category)) +
+  geom_point(alpha = 0.82) +
+  ggrepel::geom_text_repel(aes(label = category), size = 4, box.padding = 0.45, point.padding = 0.4,
+                           max.overlaps = Inf, show.legend = FALSE, seed = 42) +
+  scale_color_manual(values = category_colors, guide = "none") +
+  scale_size_continuous(range = c(5, 18), labels = label_dollar(scale = 1e-6, suffix = "M", accuracy = 0.1),
+                        name = "Estimated total margin") +
+  scale_x_continuous(labels = number_format(accuracy = 1)) +
+  scale_y_continuous(labels = label_dollar(accuracy = 0.1)) +
+  labs(x = "Average units per item-day", y = "Average listed margin per unit",
+       caption = "Estimated margin = observed quantity × (listed price − listed food cost). This is not net profit.") +
+  theme_business +
+  theme(legend.position = "right")
+show_chart(p_category_economics)
+```
+
+```{r}
+category_economics |>
+  arrange(desc(estimated_total_margin)) |>
+  transmute(
+    Category = category,
+    `Total units` = comma(total_quantity),
+    `Average unit margin` = dollar(average_unit_margin, accuracy = 0.01),
+    `Estimated food-cost margin` = dollar(estimated_total_margin, accuracy = 1000),
+    `Menu items` = item_summary |> count(category) |> pull(n)
+  ) |>
+  knitr::kable(caption = "Category volume and estimated food-cost margin", align = c("l", "r", "r", "r", "r"))
+```
+
+::: {.qsr-takeaway}
+**Takeaway:** Drinks lead quantity, but Burgers have the largest estimated total food-cost margin, followed by Combos and Chicken. Listed prices and costs are applied across all five years, and the estimate excludes labor, waste, rent, and other operating costs.
+:::
+::::
+
+# Can weather and local events add useful context? {#weather-events}
+
+:::: {.qsr-scene}
+## Does the temperature-demand relationship remain within seasons?
+
+::: {.qsr-scene-intro}
+The overall correlation is strong, but both temperature and demand vary through the year. Faceted scatterplots let us see whether the relationship looks similar within Winter, Spring, Summer, and Fall.
+:::
+
+The overall Pearson correlation between daily demand and average temperature is **`r round(overall_temperature_correlation, 2)`**. The panels below provide context for that overall value.
+
+```{r}
+#| fig-width: 15
+#| fig-height: 10
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show R code"
+p_temperature_season <- ggplot(
+  data = daily_context |> filter(!is.na(avg_temp_f), !is.na(daily_demand)),
+  mapping = aes(x = avg_temp_f, y = daily_demand)
+) +
+  geom_point(color = qsr_teal, alpha = 0.22, size = 1.35) +
+  geom_smooth(method = "lm", formula = y ~ x, se = FALSE, color = qsr_coral, linewidth = 0.9) +
+  facet_wrap(vars(season), ncol = 2) +
+  scale_x_continuous(labels = label_number(accuracy = 1)) +
+  scale_y_continuous(labels = label_comma()) +
+  labs(x = "Average daily temperature (°F)", y = "Daily recorded units",
+       caption = "Seasonal patterns may explain part of the overall association; the lines are descriptive, not causal.") +
+  theme_business +
+  theme(strip.text = element_text(face = "bold", size = 13), panel.spacing = grid::unit(1.25, "lines"))
+show_chart(p_temperature_season)
+```
+
+```{r}
+season_correlations |>
+  transmute(Season = season, `Matched days` = comma(days), `Temperature-demand correlation` = round(correlation, 2)) |>
+  knitr::kable(caption = "Simple within-season correlations", align = c("l", "r", "r"))
+```
+
+::: {.qsr-takeaway}
+**Takeaway:** Temperature is useful context for planning by season, but this analysis cannot separate its relationship with demand from other seasonal factors.
+:::
+::::
+
+:::: {.qsr-scene}
+## Which local events coincide with higher demand?
+
+::: {.qsr-scene-intro}
+This comparison places each named event beside regular days. Values at the bar ends show average daily units and how many days contribute to each average.
+:::
+
+```{r}
+#| fig-height: 7.5
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show R code"
+p_event_comparison <- ggplot(
+  data = event_summary |> mutate(event_group = forcats::fct_reorder(event_group, average_daily_demand)),
+  mapping = aes(x = event_group, y = average_daily_demand, fill = baseline_type)
+) +
+  geom_col(width = 0.7) +
+  geom_text(aes(label = paste0(comma(round(average_daily_demand)), " units/day · ", comma(days), " days")),
+            hjust = -0.08, size = 3.7) +
+  coord_flip(clip = "off") +
+  scale_fill_manual(values = c("Regular day" = "#8E9AA5", "Local event" = qsr_teal), guide = "none") +
+  scale_y_continuous(labels = label_comma(), expand = expansion(mult = c(0, 0.28))) +
+  labs(x = NULL, y = "Average daily recorded units") +
+  theme_business
+show_chart(p_event_comparison)
+```
+
+::: {.qsr-takeaway}
+**Takeaway:** Three named event groups exceed the regular-day average; Winter Carnival is slightly below it. Use the event calendar as a planning signal, not a promise that all events raise demand.
+:::
+::::
+
+# Which other relationships are worth a closer look? {#other-relationships}
+
+:::: {.qsr-scene}
+## Do listed price or preparation time show a clear relationship with average demand?
+
+::: {.qsr-scene-intro}
+Each point is one menu item. The two scatterplots test whether average item-day quantity follows a clear linear pattern with listed price or preparation time. Points are colored by menu category, and the line summarizes the overall trend.
+:::
+
+```{r}
+#| fig-height: 7
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show R code"
+p_price_demand <- ggplot(item_summary, aes(x = unit_price, y = average_item_day_quantity, color = category)) +
+  geom_point(size = 2.5, alpha = 0.85) +
+  geom_smooth(aes(group = 1), method = "lm", formula = y ~ x, se = FALSE, color = qsr_coral, linewidth = 0.9) +
+  scale_color_manual(values = category_colors, name = "Category") +
+  scale_x_continuous(labels = label_dollar(accuracy = 1)) +
+  labs(x = "Listed price per item", y = "Average units per item-day") +
+  theme_business
+show_chart(p_price_demand)
+```
+
+### Does preparation time relate to average demand?
+
+::: {.qsr-scene-intro}
+Each point is one menu item. The trend line helps check whether items that take longer to prepare also tend to have higher or lower average item-day demand.
+:::
+
+```{r}
+#| fig-height: 7
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show R code"
+p_prep_demand <- ggplot(item_summary, aes(x = prep_minutes, y = average_item_day_quantity, color = category)) +
+  geom_point(size = 2.5, alpha = 0.85) +
+  geom_smooth(aes(group = 1), method = "lm", formula = y ~ x, se = FALSE, color = qsr_coral, linewidth = 0.9) +
+  scale_color_manual(values = category_colors, name = "Category") +
+  labs(x = "Preparation time (minutes)", y = "Average units per item-day") +
+  theme_business
+show_chart(p_prep_demand)
+```
+
+The linear correlations are **`r round(price_correlation, 2)`** for listed price and **`r round(prep_correlation, 2)`** for preparation time.
+
+::: {.qsr-takeaway}
+**Takeaway:** These plots do not show a clear overall linear relationship between either listed price or preparation time and average item-day quantity across the 50 menu items. That is useful context, but it does not prove these factors never matter for a specific item.
+:::
+::::
+
+:::: {.qsr-scene}
+## Does monthly advertising spend move with demand?
+
+::: {.qsr-scene-intro}
+The monthly scatterplot tests the relationship between local advertising spend and average daily demand. Colors distinguish years so we can see whether the pattern is spread across the five-year period.
+:::
+
+```{r}
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show R code"
+p_marketing_demand <- ggplot(
+  data = monthly_marketing |> filter(!is.na(local_ad_spend_usd), !is.na(monthly_average_daily_demand)),
+  mapping = aes(x = local_ad_spend_usd, y = monthly_average_daily_demand, color = year)
+) +
+  geom_point(size = 2.9, alpha = 0.85) +
+  geom_smooth(aes(group = 1), method = "lm", formula = y ~ x, se = FALSE, color = qsr_coral, linewidth = 1) +
+  scale_x_continuous(labels = label_dollar(scale = 1e-3, suffix = "k")) +
+  scale_y_continuous(labels = label_comma()) +
+  scale_color_brewer(palette = "Set2", name = "Year") +
+  labs(x = "Monthly local advertising spend", y = "Average daily recorded units",
+       caption = paste0("Monthly advertising-spend correlation = ", round(ad_spend_correlation, 2),
+                        ". Seasonal demand and planned spending may explain part of this association.")) +
+  theme_business
+show_chart(p_marketing_demand)
+```
+
+::: {.qsr-takeaway}
+**Takeaway:** Advertising spend and demand move together in the raw monthly data, but this does not show that advertising caused higher demand. A planned test or a comparison that accounts for seasonality would be needed to estimate impact. Social-post count and precipitation have weak simple correlations with demand, so they are not given separate headline charts.
+:::
+::::
+
+# What should Dr. B do next? {#recommendations}
+
+The results point to a few practical next steps:
+
+1. **Protect core-product availability.** Use the top-item ranking to prioritize stock checks, especially in the higher-demand months.
+2. **Plan for seasonal and weekly variation.** Use the monthly trend and weekday distribution as a starting point for staffing and preparation.
+3. **Review the full menu economics.** Consider estimated margin alongside volume, and use period-specific prices and costs before making financial decisions.
+4. **Evaluate promotions by category.** Compare similar products and periods, and check whether the offer creates incremental demand before expanding it.
+5. **Prepare for specific local events.** The event results differ by event, so use the calendar rather than a single general event assumption.
+6. **Treat weather and marketing as context.** The current analysis identifies associations, not independent causal effects.
+
+::: {.callout-note}
+**Scope:** This is a descriptive Stage 1 analysis of one selected restaurant. Estimates use the supplied prices and costs; they are not net profit or historical accounting. All conclusions should stay within the available R07 data and the visualization techniques covered in Weeks 1–5.
+:::
+
+## Final thought
+
+The useful story is not simply what sold the most. Demand has a seasonal rhythm, products show different patterns, and high unit volume is not the same as high estimated food-cost margin. The best next decisions combine these findings and use new tests where the current data cannot establish a clear relationship.

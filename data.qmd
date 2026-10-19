@@ -1,0 +1,141 @@
+---
+title: "Data used in this analysis"
+subtitle: "The source tables, how they connect, and what the initial quality checks found"
+---
+
+This analysis focuses on **R07 in Minneapolis** and daily menu-item sales from **2021–2025**. The eight source tables below are the ones needed to answer the selected business questions.
+
+| Source file | Information used | Why it matters |
+|---|---|---|
+| `sales_R07.csv` | Date, item, quantity, promotion flag | Measures demand and identifies promoted item-days |
+| `menu_items.csv` | Item name, category, listed price | Ranks products and compares menu categories |
+| `calendar.csv` | Month, year, weekday, holidays | Shows seasonal and weekly demand patterns |
+| `menu_item_details.csv` | Food cost and preparation minutes | Compares demand with simple menu economics and preparation time |
+| `restaurants.csv` | Restaurant city | Identifies the location used for weather context |
+| `weather.csv` | Daily temperature and precipitation | Checks whether weather moves with daily demand |
+| `events.csv` | Event dates and names | Compares event days with regular days |
+| `marketing_spend.csv` | Monthly advertising spend and social posts | Checks whether marketing activity moves with demand |
+
+`restaurant_profile.csv` is part of the supplied bundle, but it is not needed for the Stage 1 questions selected here.
+
+## How the tables connect
+
+Sales joins to the menu by `menu_item_id` and to the calendar by `date`. Weather connects by the restaurant city and date; events connect by restaurant and date; food cost and preparation time connect by `menu_item_id`; marketing connects by restaurant, year, and month.
+
+## Data-quality findings
+
+The checks below look for missing sales quantities, duplicate item-day records, unmatched menu details, invalid temperature codes, and gaps in weather coverage. The results are calculated from the original CSV files when the page is rendered.
+
+```{r}
+#| label: data-quality-findings
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show R code used for the data-quality checks"
+
+library(tidyverse)
+source("R/load_data.R")
+missing_inputs <- qsr_missing_files("data")
+
+if (length(missing_inputs) > 0) {
+  cat(
+    "The data-quality table will appear after the eight original CSV files are copied into data/. Missing files: ",
+    paste(missing_inputs, collapse = ", ")
+  )
+} else {
+  qsr_data <- load_qsr_data("data")
+
+  sales_r07 <- qsr_data$sales |>
+    mutate(date = as.Date(date)) |>
+    filter(restaurant_id == "R07")
+  menu_items <- qsr_data$menu_items
+  calendar <- qsr_data$calendar |> mutate(date = as.Date(date))
+  weather <- qsr_data$weather |> mutate(date = as.Date(date))
+  menu_item_details <- qsr_data$menu_item_details
+  r07_city <- qsr_data$restaurants |>
+    filter(restaurant_id == "R07") |>
+    pull(city) |>
+    first()
+
+  missing_quantity_n <- sum(is.na(sales_r07$quantity))
+  missing_quantity_pct <- 100 * missing_quantity_n / nrow(sales_r07)
+
+  duplicate_item_days_n <- sales_r07 |>
+    count(date, menu_item_id) |>
+    filter(n > 1) |>
+    nrow()
+
+  sales_with_menu <- sales_r07 |>
+    left_join(
+      menu_items |> select(menu_item_id, menu_item_name, category),
+      by = "menu_item_id"
+    )
+  unmatched_menu_rows_n <- sum(
+    is.na(sales_with_menu$menu_item_name) | is.na(sales_with_menu$category)
+  )
+
+  weather_r07 <- weather |> filter(city == r07_city)
+  invalid_temp_n <- sum(weather_r07$avg_temp_f == -99, na.rm = TRUE)
+  weather_dates_missing_n <- calendar |>
+    distinct(date) |>
+    anti_join(weather_r07 |> distinct(date), by = "date") |>
+    nrow()
+
+  missing_price_n <- sum(is.na(menu_items$unit_price))
+  missing_food_cost_n <- sum(is.na(menu_item_details$food_cost_per_unit))
+  missing_prep_n <- sum(is.na(menu_item_details$prep_minutes))
+
+  result_count <- function(n, label) {
+    if (n == 0) "None found" else paste0(scales::comma(n), " ", label)
+  }
+
+  quality_findings <- tibble(
+    Finding = c(
+      "Missing sales quantities",
+      "Duplicate date + menu-item combinations",
+      "Sales rows missing a menu name or category after joining",
+      "Temperature values coded as -99",
+      "Calendar dates without a matching weather record for R07's city",
+      "Missing listed menu prices",
+      "Missing food-cost values",
+      "Missing preparation-time values"
+    ),
+    Result = c(
+      paste0(scales::comma(missing_quantity_n), " (", scales::number(missing_quantity_pct, accuracy = 0.1), "%)"),
+      result_count(duplicate_item_days_n, "duplicate date-item combinations"),
+      result_count(unmatched_menu_rows_n, "unmatched sales rows"),
+      result_count(invalid_temp_n, "temperature values coded as -99"),
+      result_count(weather_dates_missing_n, "calendar dates without a weather record"),
+      result_count(missing_price_n, "menu items missing a listed price"),
+      result_count(missing_food_cost_n, "menu items missing food cost"),
+      result_count(missing_prep_n, "menu items missing preparation time")
+    ),
+    `How it is handled` = c(
+      "Exclude from item-day comparisons. Daily totals use recorded quantities, so totals may be understated on affected dates.",
+      if (duplicate_item_days_n == 0) "No duplicate item-day rows needed to be removed." else "Review duplicate rows before interpreting item-day totals.",
+      if (unmatched_menu_rows_n == 0) "The sales-to-menu join matches the required item descriptions and categories." else "Review unmatched item IDs before category or product comparisons.",
+      "Treat -99 as a missing temperature, not as a real weather reading.",
+      "Do not invent weather values; weather comparisons use dates with matching observations.",
+      if (missing_price_n == 0) "No price-related exclusions are required." else "Items without price are omitted from analyses that require listed price.",
+      if (missing_food_cost_n == 0) "No food-cost exclusions are required." else "Items without food cost cannot contribute to estimated food-cost margin.",
+      if (missing_prep_n == 0) "No preparation-time exclusions are required." else "Items without preparation time are omitted from preparation-time comparisons."
+    )
+  )
+
+  knitr::kable(
+    quality_findings,
+    caption = "Data-quality checks and how the analysis handles each finding",
+    col.names = c("Finding", "Result", "How the analysis handles it"),
+    align = c("l", "l", "l")
+  )
+}
+```
+
+The initial review of this dataset found **365 missing sales quantities (about 0.4% of sales rows)**, **no duplicate date-and-menu-item combinations**, **14 weather temperatures coded as `-99`**, and **55 calendar dates without a matching weather record for Minneapolis**. The checks above recalculate these results from the source files whenever the site is rendered.
+
+::: {.callout-note}
+Not every blank field is an error. For example, `holiday_name` is normally blank on non-holidays, and an event name is blank on days without a special event. Missing sales quantities and invalid temperature codes need explicit handling because they can affect analysis.
+:::
+
+## Required source files
+
+Keep the eight original CSV files in the local `data/` folder. Do not replace them with sample or fabricated data. The course instructions also say not to commit the source CSVs to a public GitHub repository.
