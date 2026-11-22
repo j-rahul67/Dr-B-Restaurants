@@ -1,0 +1,168 @@
+---
+title: "Predicting Restaurant Demand, One Day at a Time"
+subtitle: "QSR Daily Demand — Stage 1 described demand, Stage 2 predicts it"
+author: "Rahul Jangir"
+date: "OMIS 681 · Machine Learning for Business · Fall 2026"
+format:
+  revealjs:
+    theme: default
+    slide-number: true
+    transition: fade
+---
+
+## The data, and why the unit of observation matters
+
+- 8 source tables joined: 91,300 sales records, 50 menu items, 8 categories, R07 in Minneapolis, 2021–2025 (1,826 days)
+- One sales row = one menu item on one date, not a customer — two outcomes kept separate: quantity per item-day vs total units per restaurant-day
+- Data quality found, not hidden: 365 missing quantities, 14 temperatures coded -99, 55 dates with no weather record
+
+::: {.notes}
+Most early mistakes in this class came from not knowing what a row was. I fixed that first, before any chart or model.
+:::
+
+## What sells: drinks carry the volume
+
+- Drinks lead unit demand; a small group of familiar items carries much of the volume
+- Burgers lead estimated total food-cost margin — volume and value point to different decisions
+- Category totals and typical item-day quantities answer different questions, and both are needed
+
+::: {.notes}
+Volume tells the owner what must never run out. Margin tells the owner what is worth promoting. Stage 1 kept those two stories separate.
+:::
+
+## When it sells: demand has a calendar rhythm
+
+- Demand rises into summer and varies by weekday; categories do not share one seasonal shape
+- Averages alone mislead — weekday distributions show the spread within each day, not just the center
+- This rhythm is exactly what the Stage 2 models are asked to learn
+
+::: {.notes}
+The calendar pattern in this slide is the hypothesis Stage 2 tests: if demand has a rhythm, a model using calendar predictors should beat a simple average.
+:::
+
+## Relationships worth testing, and one that failed
+
+- Promotions, weather, and events show associations worth modeling
+- Price and preparation time show no clear overall linear pattern with item-day quantity
+- The negative result is kept on purpose: a weak scatterplot is a finding, not a failure to hide
+
+::: {.notes}
+Stage 1 ended with hypotheses, not conclusions. That set up the modeling honestly — I only modeled predictors that had a reason to be there.
+:::
+
+## Week 6: the project is a Quarto website
+
+- Every page renders from the same data and code, with "Show R code" on every chart
+- No hand-typed numbers anywhere on the site — every number is computed from the data
+- If a number cannot be recomputed, it does not go on the site
+
+::: {.notes}
+Reproducibility was the Week 6 lesson. It also made Stage 2 easier: the modeling page reuses the same daily-demand table the report already built.
+:::
+
+## Week 8: my first model, and the split-first rule
+
+- Target: total daily demand (units per restaurant-day), one row per date — a regression problem
+- 80/20 split with seed 681, before any preprocessing: 1,460 training days, 366 test days
+- Recipe v1 (lean): calendar + headline weather, median imputation for numbers, dummies for categories, no normalization for a plain linear model
+
+::: {.notes}
+The biggest Week 8 lesson: the recipe is prepped inside the workflow on training data only. Prep on the full data and the test set leaks into the model.
+:::
+
+## Week 9: two recipes, four model specs, five workflows
+
+- Recipe v2 (full) adds season, event group, and precipitation type; mode imputation for text; normalize predictors only, never the outcome
+- Specs: linear regression (lm), lasso (glmnet, mixture 1), ridge (glmnet, mixture 0 — Week 12 Activity 3 fits ridge in class), decision tree (rpart), all in regression mode
+- Five workflows compared, plus two baselines; random forest and boosting appear in class only in prose, so they are left as a future extension, not presented as class work
+
+::: {.notes}
+Week 9 was about each tidymodels package having one job: rsample splits, recipes prep, parsnip specifies, workflows combine. The bugs I learned to avoid: recipe vs baked data, median vs mode imputation, classification mode on a numeric outcome.
+:::
+
+## Week 10: predictions, judged against baselines
+
+- Every workflow predicts the same held-out test days; the overall-mean and weekday-average baselines predict them too
+- Predicted-vs-actual and residuals-over-time charts show where a model fails, not just how much
+- A model that cannot beat the weekday average has learned nothing the calendar did not already say
+
+::: {.notes}
+The baselines keep the results honest. In the end every real model beat them by a wide margin, which is what makes the winner's number believable.
+:::
+
+## Weeks 11–12: assessment before recommendation
+
+| Model | Test RMSE | Test MAE | Test R2 | CV RMSE | Time-test RMSE | Time-test MAE | Time-test R2 |
+|---|---|---|---|---|---|---|---|
+| LM + Recipe v2 | 130.7 | 84.8 | 0.908 | 110.6 | 134.2 | 96.8 | 0.924 |
+| Lasso + Recipe v2 | 130.8 | 85.0 | 0.908 | 110.8 | 134.1 | 96.9 | 0.924 |
+| Ridge + Recipe v2 | 137.8 | 89.8 | 0.901 | 116.1 | 137.8 | 100.8 | 0.919 |
+| Tree + Recipe v2 | 192.7 | 140.7 | 0.799 | 183.2 | 178.8 | 131.5 | 0.835 |
+| LM + Recipe v1 | 196.3 | 114.0 | 0.790 | 166.4 | 169.6 | 108.6 | 0.856 |
+| Baseline: weekday average | 383.0 | 294.1 | 0.201 | — | 373.1 | 289.7 | 0.168 |
+| Baseline: overall mean | 428.0 | 317.8 | — | — | 407.4 | 318.2 | — |
+
+- Three views of the same models: random-split test, 5-fold cross-validation, and a time split (train 2021–2024, test 2025)
+- Only one thing tuned: the lasso penalty, on the CV folds, never on the test set
+
+::: {.notes}
+Weeks 11–12 changed my order of work: metrics first, interpretation second, recommendation last. Note the time split: lasso essentially ties the winner there, 134.1 against 134.2, so I am not claiming a large gap between the top two.
+:::
+
+## The winner: a plain linear model with the full recipe
+
+- **LM + Recipe v2** — test RMSE 130.7, test MAE 84.8, test R2 0.908; it also leads on CV (110.6) and holds up on the unseen year (time-test RMSE 134.2, R2 0.924)
+- Largest drivers (normalized scale): July +216.3, June +199.1, August +186.6, Saturday +162.9, May +145.6, September +121.9
+- Also in the top ten: no special event -121.1, Friday +111.0, Sunday +98.1, October +79.5 — summer, weekends, and event days drive demand
+- In business terms: a typical day's prediction is off by about **85 units per day** — a prep buffer and staffing range, not an exact order quantity
+
+::: {.notes}
+The winner is not the fanciest model. The full recipe beat the lean one by a wide margin, and then a plain linear model on that recipe was enough. The summer and Saturday effects match what Stage 1 found descriptively, which is a good consistency check.
+:::
+
+## What did not work
+
+- Lean Recipe v1 was the worst model (test RMSE 196.3): the added season, event, and precipitation predictors in v2 mattered
+- The decision tree was clearly worse (192.7) than every linear-family model on this data
+- Two build errors were caught by checking my own output: a results table that did not print, and a winner label that picked the wrong row — both found because the numbers on the page are checked against each other, and both fixed before reporting
+
+::: {.notes}
+I include this slide because verification is part of the work. The check that caught the problems was simple: the recommendation on the page has to agree with the ranked table above it. If I had not compared them, I would have presented the wrong winner.
+:::
+
+## Limitations
+
+- One restaurant only (R07, Minneapolis); nothing transfers to another location without refitting and re-assessing
+- Weather is association, not cause — and at planning time only forecast weather is available, which is less accurate than the recorded weather used here
+- Monthly marketing was excluded from the daily models on purpose: repeating monthly spend on daily rows would invent daily precision the data does not have
+
+::: {.notes}
+Every limit here is a data limit, not a model limit. Better inputs — item-level promotions, real weather forecasts — would beat a fancier model. The random split is also optimistic next to the time split, which is why both are reported.
+:::
+
+## What I learned, in one slide
+
+- First analysis (Stage 1): describe honestly, keep the unit of observation straight, report negative results
+- Updated analysis (Stage 2): split first, compare against baselines, assess three ways before recommending anything
+- Next step if I continued: item-level promotion data and real weather forecasts as predictors
+
+::: {.notes}
+The course moved me from "what happened" to "what can we predict, and how wrong might we be" — and to saying the second part out loud.
+:::
+
+## What I learned in this course
+
+| Weeks | Lesson | What it produced in this project |
+|---|---|---|
+| Weeks 1–3 | Getting started; basic and advanced manipulations | The eight joined source tables, data-quality checks, and the daily-demand table |
+| Weeks 4–5 | Basic and advanced visualizations | Ranking bars, line charts, boxplots, scatterplots, correlation heatmap, and faceting in the Exploration and Report pages |
+| Week 6 | Quarto workshop | This website and this presentation — every number reproducible from code |
+| Week 8 | Intro to modeling | The first linear model for daily demand, fitted on training data only |
+| Week 9 | Core tidymodels packages | Two recipes, four model specs, five workflows, and 5-fold resamples |
+| Week 10 | Making predictions | Test-set predictions, predicted-vs-actual and residuals diagnostics, judged against two baselines |
+| Weeks 11–12 | Model assessment | The ranked comparison table (test, CV, time split), lasso tuning, and the named winner |
+| Week 15 | Communicating an analysis | This talk: first analysis vs updated analysis, with the error stated in units per day |
+
+::: {.notes}
+Each part of the project exists because of a specific week. The Learning Map on the project homepage makes the same mapping, with links to the exact page where each lesson is used.
+:::

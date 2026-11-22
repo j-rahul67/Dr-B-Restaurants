@@ -1,0 +1,886 @@
+---
+title: "Predicting Daily Demand"
+subtitle: "From describing demand to predicting it, with tidymodels"
+author: "Student Analyst"
+format:
+  html:
+    toc: false
+    number-sections: false
+    anchor-sections: true
+    smooth-scroll: true
+    code-fold: false
+    code-tools: false
+    fig-width: 15
+    fig-height: 7
+    fig-dpi: 160
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+#| label: setup
+#| include: false
+library(tidyverse)
+library(tidymodels)
+library(scales)
+source("R/load_data.R")
+source("R/plot_helpers.R")
+
+# Defaults used by the page text if the source files are missing, so the page
+# still renders (with a clear message) instead of failing.
+total_days <- 0L
+train_days <- 0L
+test_days <- 0L
+winner_name <- "Unavailable (source files missing)"
+winner_mae <- NA_real_
+winner_rmse <- NA_real_
+
+missing_inputs <- qsr_missing_files("data")
+data_ready <- length(missing_inputs) == 0
+
+if (data_ready) {
+  qsr_data <- load_qsr_data("data")
+  sales <- qsr_data$sales |> mutate(date = as.Date(date)) |> filter(restaurant_id == "R07")
+  restaurants <- qsr_data$restaurants
+  calendar <- qsr_data$calendar |> mutate(date = as.Date(date))
+  weather <- qsr_data$weather |> mutate(date = as.Date(date))
+  events <- qsr_data$events |> mutate(date = as.Date(date))
+
+  r07_city <- restaurants |> filter(restaurant_id == "R07") |> pull(city) |> first()
+
+  # The daily table is built with exactly the same logic as report.qmd, so the
+  # modeling numbers stay consistent with the Stage 1 descriptive numbers.
+  sales_daily <- sales |>
+    group_by(date) |>
+    summarise(daily_demand = sum(quantity, na.rm = TRUE), .groups = "drop") |>
+    left_join(
+      calendar |> select(date, day_of_week, day_of_week_num, is_weekend, month, year, is_holiday, holiday_name),
+      by = "date"
+    )
+
+  weather_r07 <- weather |>
+    filter(city == r07_city) |>
+    mutate(
+      avg_temp_f = if_else(avg_temp_f == -99, NA_real_, as.numeric(avg_temp_f)),
+      precip_inches = as.numeric(precip_inches),
+      precip_type = stringr::str_to_title(precip_type)
+    ) |>
+    select(date, avg_temp_f, precip_inches, precip_type)
+
+  events_r07 <- events |>
+    filter(restaurant_id == "R07") |>
+    transmute(
+      date,
+      event_group = if_else(
+        is_special_event == 1 & !is.na(special_event_name) & special_event_name != "",
+        as.character(special_event_name),
+        "No special event"
+      )
+    )
+
+  daily_context <- sales_daily |>
+    left_join(weather_r07, by = "date") |>
+    left_join(events_r07, by = "date") |>
+    mutate(
+      day_of_week = factor(day_of_week, levels = c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")),
+      season = factor(
+        case_when(
+          month %in% c(12, 1, 2) ~ "Winter",
+          month %in% 3:5 ~ "Spring",
+          month %in% 6:8 ~ "Summer",
+          TRUE ~ "Fall"
+        ),
+        levels = c("Winter", "Spring", "Summer", "Fall")
+      )
+    )
+
+  # One row per restaurant-day. Month, weekend and holiday are factors so the
+  # recipes dummy them; year is kept only for the time-based split in the
+  # assessment section and is never a predictor.
+  modeling_data <- daily_context |>
+    transmute(
+      date,
+      daily_demand,
+      day_of_week,
+      month = factor(month, levels = 1:12, labels = month.abb),
+      year,
+      is_weekend = factor(if_else(is_weekend == 1, "Yes", "No"), levels = c("No", "Yes")),
+      is_holiday = factor(if_else(is_holiday == 1, "Yes", "No"), levels = c("No", "Yes")),
+      season,
+      avg_temp_f,
+      precip_inches,
+      precip_type = factor(precip_type),
+      event_group = factor(event_group)
+    ) |>
+    arrange(date)
+
+  total_days <- nrow(modeling_data)
+}
+
+reg_metrics <- metric_set(rmse, mae, rsq)
+```
+
+:::: {.qsr-hero}
+[Stage 2 · Predictive modeling · R07]{.qsr-eyebrow}
+
+## Can we predict tomorrow's demand for R07?
+
+Stage 1 described what sold and when. This page takes the next course step: predict **total daily demand** (units per restaurant-day) for R07 in Minneapolis, using only information that would be known in advance — calendar, weather, and local events. It follows the course order: one first model (Week 8), the core tidymodels pieces (Week 9), predictions on unseen data (Week 10), and a full assessment before any model is recommended (Weeks 11–12).
+
+:::: {.qsr-metrics}
+::: {.qsr-metric}
+[Days modeled]{.qsr-metric-label}
+
+**`r scales::comma(total_days)`**
+
+One row per date, 2021–2025
+:::
+::: {.qsr-metric}
+[Outcome]{.qsr-metric-label}
+
+**Daily demand**
+
+Total recorded units per day
+:::
+::: {.qsr-metric}
+[Recipes]{.qsr-metric-label}
+
+**2**
+
+Lean (v1) and full (v2)
+:::
+::: {.qsr-metric}
+[Workflows compared]{.qsr-metric-label}
+
+**5 + 2 baselines**
+
+Judged on test, CV, and a time split
+:::
+::::
+
+::::
+
+```{r}
+#| label: data-check
+if (!data_ready) {
+  cat("Source files are missing, so the modeling results cannot be computed yet. Copy these files into the data/ folder and re-render: ",
+      paste(missing_inputs, collapse = ", "))
+}
+```
+
+The modeling dataset keeps the Stage 1 data decisions: missing sales quantities stay missing in the item-day data and daily totals sum the recorded quantities; temperatures coded -99 are treated as missing; the 55 Minneapolis dates with no weather record keep missing weather values, which the recipes impute from the training data only.
+
+# Week 8 — Intro to modeling: one honest first model {#week8}
+
+:::: {.qsr-scene}
+## Split first, and set the seed
+
+::: {.qsr-scene-intro}
+Following the Week 8 / Week 11 class pattern, the data is split 80/20 into training and test sets *before* any recipe is fitted, with a seed so the split can be reproduced. The test set is not touched until the predictions section. One caution, stated now and tested later: a random split mixes all five years in both sets, so the assessment also repeats the comparison with a time-based split.
+:::
+
+```{r}
+#| label: split
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show R code"
+if (data_ready) {
+  set.seed(681)
+  daily_split <- initial_split(modeling_data, prop = 0.80)
+  train_data <- training(daily_split)
+  test_data <- testing(daily_split)
+  train_days <- nrow(train_data)
+  test_days <- nrow(test_data)
+
+  tibble(
+    Set = c("Training", "Test"),
+    Days = c(train_days, test_days),
+    `Date range` = c(
+      paste(min(train_data$date), "to", max(train_data$date)),
+      paste(min(test_data$date), "to", max(test_data$date))
+    )
+  ) |>
+    knitr::kable(caption = "Random 80/20 split of the daily data (seed 681)", align = c("l", "r", "l"))
+}
+```
+
+::: {.qsr-takeaway}
+**Takeaway:** Every preprocessing number on this page (medians, modes, means, standard deviations) is learned from the training rows only, inside the workflow. Nothing is prepped on the full data, so no test information leaks into the models.
+:::
+::::
+
+:::: {.qsr-scene}
+## Recipe v1 (lean), a linear model, and one workflow
+
+::: {.qsr-scene-intro}
+Recipe v1 uses only calendar and headline weather predictors. Numeric missing values are imputed with the median (the Week 8 rule: median for numbers, mode for text), and categorical predictors become dummies. There is deliberately no normalization step: a plain linear model does not need it, and Recipe v2 is where scaling is introduced for the penalized model.
+:::
+
+```{r}
+#| label: first-model
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show R code"
+if (data_ready) {
+  recipe_v1 <- recipe(daily_demand ~ day_of_week + month + is_weekend + is_holiday +
+                        avg_temp_f + precip_inches,
+                      data = train_data) |>
+    step_impute_median(all_numeric_predictors()) |>
+    step_dummy(all_nominal_predictors())
+
+  lm_spec <- linear_reg() |>
+    set_engine("lm") |>
+    set_mode("regression")
+
+  lm_v1_workflow <- workflow() |>
+    add_recipe(recipe_v1) |>
+    add_model(lm_spec)
+
+  lm_v1_fit <- lm_v1_workflow |> fit(data = train_data)
+
+  lm_v1_fit |>
+    extract_fit_parsnip() |>
+    tidy() |>
+    filter(!is.na(estimate)) |>
+    transmute(
+      Term = term,
+      Estimate = round(estimate, 1),
+      `Std. error` = round(std.error, 1),
+      `p-value` = scales::number(p.value, accuracy = 0.001)
+    ) |>
+    knitr::kable(caption = "Linear model (Recipe v1) coefficients, fitted on training data only", align = c("l", "r", "r", "r"))
+
+  lm_v1_fit |>
+    extract_fit_parsnip() |>
+    glance() |>
+    transmute(
+      `R-squared (train)` = round(r.squared, 3),
+      `Adj. R-squared (train)` = round(adj.r.squared, 3),
+      `Residual SD (train)` = round(sigma, 1),
+      Observations = nobs
+    ) |>
+    knitr::kable(caption = "Linear model (Recipe v1) fit summary on training data — not the headline result", align = c("r", "r", "r", "r"))
+}
+```
+
+::: {.qsr-takeaway}
+**Takeaway:** Read the signs, not just the size: weekend and summer-month terms should be positive if the Stage 1 seasonal story is real, and temperature should be positive within this specification. One coefficient is dropped by the fit: the weekend flag overlaps the Saturday/Sunday dummies, the same rank-deficiency caution the Week 12 class file raises for wide recipes. Training R-squared is reported for completeness only — a model is only recommended after the test, cross-validation, and time-split assessment below.
+:::
+::::
+
+# Week 9 — Core tidymodels packages: recipes, specs, workflows {#week9}
+
+:::: {.qsr-scene}
+## Recipe v2 (full) and the resamples
+
+::: {.qsr-scene-intro}
+Recipe v2 is a controlled change from v1: it adds season, event group, and precipitation type, imputes categorical missing values with the mode, and normalizes the numeric *predictors* (never the outcome) because the glmnet model in this comparison is scale-sensitive. The 5-fold cross-validation resamples are created here, from the training data, and used in the assessment.
+:::
+
+```{r}
+#| label: recipe-v2
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show R code"
+if (data_ready) {
+  recipe_v2 <- recipe(daily_demand ~ day_of_week + month + is_weekend + is_holiday +
+                        season + event_group + avg_temp_f + precip_inches + precip_type,
+                      data = train_data) |>
+    step_impute_median(all_numeric_predictors()) |>
+    step_impute_mode(all_nominal_predictors()) |>
+    step_dummy(all_nominal_predictors()) |>
+    step_normalize(all_numeric_predictors())
+
+  set.seed(681)
+  daily_folds <- vfold_cv(train_data, v = 5)
+
+  # Class practice from Weeks 8/11: prep and bake the recipe once to verify
+  # the steps do what they claim before the recipe is trusted in a workflow.
+  recipe_v2_baked <- recipe_v2 |> prep(training = train_data) |> bake(new_data = NULL)
+  tibble(
+    Check = c("Rows after prep/bake (training)", "Columns after prep/bake", "Missing values left"),
+    Result = c(
+      scales::comma(nrow(recipe_v2_baked)),
+      scales::comma(ncol(recipe_v2_baked)),
+      scales::comma(sum(is.na(recipe_v2_baked)))
+    )
+  ) |>
+    knitr::kable(caption = "Recipe v2 prep/bake verification on training data", align = c("l", "r"))
+}
+```
+
+::: {.qsr-takeaway}
+**Takeaway:** Recipe v1 vs v2 is one experiment, not two unrelated models: same split, same seed, same metrics. Any performance difference can then be credited to the added predictors and steps, not to a different data split.
+:::
+::::
+
+:::: {.qsr-scene}
+## Four model specs, five workflows
+
+::: {.qsr-scene-intro}
+The parsnip specs mirror the Week 11/12 class set — linear regression, lasso regression, ridge regression, and a decision tree, all in regression mode because daily demand is a number. Ridge is included because Week 12's Activity 3 fits a ridge model in class; it uses the same glmnet engine as the lasso, with mixture = 0 (all penalty on the squared coefficients) instead of 1. The lasso and ridge penalties are fixed placeholders (0.01) at this stage; only the lasso penalty is tuned, in the assessment section, and only there — ridge keeps its placeholder so the assessment tunes exactly one model and stays readable. Random forest and boosting are *not* added: in the Week 8/11/12 materials they are mentioned in prose and suggested as future work, but no completed class file fits them, so they are left as a future extension rather than presented as class work.
+:::
+
+```{r}
+#| label: specs-workflows
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show R code"
+if (data_ready) {
+  lasso_spec <- linear_reg(penalty = 0.01, mixture = 1) |>
+    set_engine("glmnet") |>
+    set_mode("regression")
+
+  ridge_spec <- linear_reg(penalty = 0.01, mixture = 0) |>
+    set_engine("glmnet") |>
+    set_mode("regression")
+
+  tree_spec <- decision_tree() |>
+    set_engine("rpart") |>
+    set_mode("regression")
+
+  model_workflows <- list(
+    "LM + Recipe v1" = workflow() |> add_recipe(recipe_v1) |> add_model(lm_spec),
+    "LM + Recipe v2" = workflow() |> add_recipe(recipe_v2) |> add_model(lm_spec),
+    "Lasso + Recipe v2" = workflow() |> add_recipe(recipe_v2) |> add_model(lasso_spec),
+    "Ridge + Recipe v2" = workflow() |> add_recipe(recipe_v2) |> add_model(ridge_spec),
+    "Tree + Recipe v2" = workflow() |> add_recipe(recipe_v2) |> add_model(tree_spec)
+  )
+
+  tibble(
+    Workflow = names(model_workflows),
+    Recipe = c("v1 (lean)", "v2 (full)", "v2 (full)", "v2 (full)", "v2 (full)"),
+    Model = c("Linear regression (lm)", "Linear regression (lm)",
+              "Lasso, penalty 0.01 placeholder (glmnet)",
+              "Ridge, penalty 0.01 placeholder, not tuned (glmnet)",
+              "Decision tree (rpart)"),
+    Mode = "Regression"
+  ) |>
+    knitr::kable(caption = "The five workflows compared on this page", align = c("l", "l", "l", "l"))
+}
+```
+
+::: {.qsr-takeaway}
+**Takeaway:** Each workflow carries its own recipe, so fitting a workflow preps the recipe on the training data and trains the model in one step — the workflow is never fitted on test data.
+:::
+::::
+
+# Week 10 — Making predictions on unseen data {#week10}
+
+:::: {.qsr-scene}
+## Fit on training, predict on test
+
+::: {.qsr-scene-intro}
+Each workflow is fitted once on the training set and used to predict the held-out test days. Two baselines are predicted the same way: the training mean (predict the same number every day) and the weekday average (predict each day by its weekday's training average). A model that cannot beat the weekday baseline has not learned anything the calendar did not already tell us.
+:::
+
+```{r}
+#| label: fits-predictions
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show R code"
+if (data_ready) {
+  model_fits <- lapply(model_workflows, fit, data = train_data)
+
+  test_preds <- lapply(model_fits, function(fit) {
+    predict(fit, new_data = test_data) |>
+      bind_cols(test_data |> select(date, day_of_week, daily_demand))
+  })
+
+  all_preds_long <- imap_dfr(test_preds, function(pred_df, model_name) {
+    pred_df |> mutate(model = model_name, residual = daily_demand - .pred)
+  })
+
+  weekday_baseline <- train_data |>
+    group_by(day_of_week) |>
+    summarise(weekday_mean = mean(daily_demand), .groups = "drop")
+
+  baseline_preds <- bind_rows(
+    test_data |>
+      transmute(date, day_of_week, daily_demand,
+                .pred = mean(train_data$daily_demand),
+                model = "Baseline: overall mean"),
+    test_data |>
+      left_join(weekday_baseline, by = "day_of_week") |>
+      transmute(date, day_of_week, daily_demand,
+                .pred = weekday_mean,
+                model = "Baseline: weekday average")
+  ) |>
+    mutate(residual = daily_demand - .pred)
+
+  all_preds_long <- bind_rows(all_preds_long, baseline_preds)
+
+  initial_test_metrics <- all_preds_long |>
+    filter(!str_starts(model, "Baseline")) |>
+    group_by(model) |>
+    group_modify(~ reg_metrics(.x, truth = daily_demand, estimate = .pred)) |>
+    filter(.metric == "rmse") |>
+    arrange(.estimate)
+
+  provisional_best <- initial_test_metrics$model[[1]]
+  provisional_preds <- all_preds_long |> filter(model == provisional_best)
+
+  test_preds[["LM + Recipe v1"]] |>
+    slice_head(n = 8) |>
+    transmute(Date = date, Weekday = day_of_week,
+              `Actual units` = scales::comma(daily_demand),
+              `Predicted units` = scales::comma(round(.pred))) |>
+    knitr::kable(caption = "First test-set predictions, linear model with Recipe v1", align = c("l", "l", "r", "r"))
+}
+```
+
+::: {.qsr-takeaway}
+**Takeaway:** Predictions are only ever made on the test rows. The provisional best workflow by test RMSE is used for the two diagnostic charts below; the final recommendation waits for the full assessment, including tuning and the time split.
+:::
+::::
+
+:::: {.qsr-scene}
+## Predicted vs actual
+
+::: {.qsr-scene-intro}
+The Week 12 diagnostic: points on the 45-degree line are perfect predictions. Points above the line are over-predictions, below it under-predictions, and a funnel or curve away from the line is a pattern the model is missing.
+:::
+
+```{r}
+#| label: pred-vs-actual
+#| fig-height: 8
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show R code"
+if (data_ready) {
+  p_pred_actual <- ggplot(provisional_preds, aes(x = daily_demand, y = .pred)) +
+    geom_abline(slope = 1, intercept = 0, color = qsr_coral, linewidth = 0.9) +
+    geom_point(color = qsr_teal, alpha = 0.35, size = 1.8) +
+    scale_x_continuous(labels = label_comma()) +
+    scale_y_continuous(labels = label_comma()) +
+    labs(x = "Actual daily units", y = "Predicted daily units",
+         caption = paste0("Provisional best workflow on test data: ", provisional_best,
+                          ". The coral line is perfect prediction.")) +
+    theme_business
+  show_chart(p_pred_actual)
+
+  p_pred_actual_all <- ggplot(
+    all_preds_long |> filter(!str_starts(model, "Baseline")),
+    aes(x = daily_demand, y = .pred)
+  ) +
+    geom_abline(slope = 1, intercept = 0, color = qsr_coral, linewidth = 0.8) +
+    geom_point(color = qsr_teal, alpha = 0.3, size = 1.4) +
+    facet_wrap(vars(model), ncol = 2) +
+    scale_x_continuous(labels = label_comma()) +
+    scale_y_continuous(labels = label_comma()) +
+    labs(x = "Actual daily units", y = "Predicted daily units",
+         caption = "All five workflows on the same test days, same axes.") +
+    theme_business +
+    theme(strip.text = element_text(face = "bold", size = 12))
+  show_chart(p_pred_actual_all)
+}
+```
+
+::: {.qsr-takeaway}
+**Takeaway:** Compare the spread around the line, not the headline metric alone: a model can win on RMSE and still systematically under-predict the busiest days, which are exactly the days the owner plans for.
+:::
+::::
+
+:::: {.qsr-scene}
+## Residuals over time
+
+::: {.qsr-scene-intro}
+Residuals (actual minus predicted) plotted by date show what a single metric hides: stretches where the model is consistently too high or too low usually mean a seasonal or calendar pattern was not captured.
+:::
+
+```{r}
+#| label: residuals-time
+#| fig-height: 6
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show R code"
+if (data_ready) {
+  p_residuals_time <- ggplot(provisional_preds, aes(x = date, y = residual)) +
+    geom_hline(yintercept = 0, color = qsr_coral, linewidth = 0.9) +
+    geom_point(color = qsr_teal, alpha = 0.4, size = 1.6) +
+    geom_smooth(method = "loess", formula = y ~ x, se = FALSE, color = qsr_navy, linewidth = 0.9) +
+    scale_y_continuous(labels = label_comma()) +
+    labs(x = NULL, y = "Residual (actual − predicted units)",
+         caption = paste0("Provisional best workflow: ", provisional_best,
+                          ". Above zero = the model under-predicted that day.")) +
+    theme_business
+  show_chart(p_residuals_time)
+}
+```
+
+::: {.qsr-takeaway}
+**Takeaway:** If the smooth line drifts away from zero for whole seasons, the calendar predictors are not capturing the seasonal rhythm Stage 1 found — that is a modeling gap, not random noise.
+:::
+::::
+
+# Weeks 11–12 — Model assessment: test, cross-validation, time split, tuning {#assessment}
+
+:::: {.qsr-scene}
+## Tune one thing: the lasso penalty
+
+::: {.qsr-scene-intro}
+The class file treats fine-tuning penalty and mixture as beyond scope; this project tunes exactly one parameter, the lasso penalty, on the cross-validation folds, to show the mechanics honestly. The tuned lasso then replaces the placeholder-penalty lasso in the final comparison. The ridge penalty is deliberately *not* tuned — it stays at its 0.01 placeholder, because tuning one model keeps the assessment readable and the tuning lesson is the mechanics, not a leaderboard.
+:::
+
+```{r}
+#| label: tuning
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show R code"
+if (data_ready) {
+  lasso_tune_spec <- linear_reg(penalty = tune(), mixture = 1) |>
+    set_engine("glmnet") |>
+    set_mode("regression")
+
+  lasso_tune_workflow <- workflow() |>
+    add_recipe(recipe_v2) |>
+    add_model(lasso_tune_spec)
+
+  penalty_grid <- tibble(penalty = 10^seq(-4, 0, length.out = 10))
+
+  set.seed(681)
+  lasso_tune_results <- tune_grid(
+    lasso_tune_workflow,
+    resamples = daily_folds,
+    grid = penalty_grid,
+    metrics = reg_metrics
+  )
+
+  best_penalty <- select_best(lasso_tune_results, metric = "rmse")
+  lasso_tuned_workflow <- finalize_workflow(lasso_tune_workflow, best_penalty)
+  lasso_tuned_fit <- lasso_tuned_workflow |> fit(data = train_data)
+
+  lasso_tuned_preds <- predict(lasso_tuned_fit, new_data = test_data) |>
+    bind_cols(test_data |> select(date, day_of_week, daily_demand)) |>
+    mutate(model = "Lasso + Recipe v2", residual = daily_demand - .pred)
+
+  all_preds_long <- bind_rows(
+    all_preds_long |> filter(model != "Lasso + Recipe v2"),
+    lasso_tuned_preds
+  )
+}
+```
+
+```{r}
+#| label: tuning-chart
+#| fig-height: 6
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show R code"
+if (data_ready) {
+  p_tuning <- autoplot(lasso_tune_results) +
+    labs(caption = "Cross-validated performance by lasso penalty. The lowest-RMSE penalty is selected and refitted on the full training set.") +
+    theme_business
+  show_chart(p_tuning)
+}
+```
+
+::: {.qsr-takeaway}
+**Takeaway:** Tuning is done on the folds, never on the test set. The test set is used once, at the end, to report how the selected model does on unseen days.
+:::
+::::
+
+:::: {.qsr-scene}
+## The ranked comparison: test + CV + time split
+
+::: {.qsr-scene-intro}
+One table, three views of the same five workflows plus the two baselines. Test metrics come from the random 80/20 split; CV metrics are the 5-fold cross-validation means on training data; the time split retrains every workflow on 2021–2024 and tests it on 2025, the honest check for a demand model, because a random split lets the model see every season in training.
+:::
+
+```{r}
+#| label: comparison-table
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show R code"
+if (data_ready) {
+  test_metrics <- all_preds_long |>
+    group_by(model) |>
+    group_modify(~ reg_metrics(.x, truth = daily_demand, estimate = .pred)) |>
+    transmute(model, .metric, Test = .estimate) |>
+    pivot_wider(names_from = .metric, values_from = Test)
+
+  cv_metrics <- imap_dfr(model_workflows, function(wf, model_name) {
+    if (model_name == "Lasso + Recipe v2") {
+      collect_metrics(lasso_tune_results) |>
+        filter(.config == best_penalty$.config) |>
+        transmute(model = model_name, .metric, CV = mean)
+    } else {
+      set.seed(681)
+      fit_resamples(wf, resamples = daily_folds, metrics = reg_metrics) |>
+        collect_metrics() |>
+        transmute(model = model_name, .metric, CV = mean)
+    }
+  }) |>
+    pivot_wider(names_from = .metric, values_from = CV)
+
+  time_train <- modeling_data |> filter(year <= 2024)
+  time_test <- modeling_data |> filter(year == 2025)
+  time_workflows <- model_workflows
+  time_workflows[["Lasso + Recipe v2"]] <- lasso_tuned_workflow
+
+  time_preds <- imap_dfr(time_workflows, function(wf, model_name) {
+    wf |> fit(data = time_train) |>
+      predict(new_data = time_test) |>
+      bind_cols(time_test |> select(daily_demand)) |>
+      mutate(model = model_name)
+  })
+
+  time_weekday_baseline <- time_train |>
+    group_by(day_of_week) |>
+    summarise(weekday_mean = mean(daily_demand), .groups = "drop")
+  time_preds <- bind_rows(
+    time_preds,
+    time_test |>
+      transmute(daily_demand, .pred = mean(time_train$daily_demand),
+                model = "Baseline: overall mean"),
+    time_test |>
+      left_join(time_weekday_baseline, by = "day_of_week") |>
+      transmute(daily_demand, .pred = weekday_mean,
+                model = "Baseline: weekday average")
+  )
+  time_metrics <- time_preds |>
+    group_by(model) |>
+    group_modify(~ reg_metrics(.x, truth = daily_demand, estimate = .pred)) |>
+    transmute(model, .metric, TimeTest = .estimate) |>
+    pivot_wider(names_from = .metric, values_from = TimeTest)
+
+  comparison_table <- test_metrics |>
+    left_join(cv_metrics |> select(model, `CV RMSE` = rmse), by = "model") |>
+    left_join(time_metrics, by = "model", suffix = c("", " (time)")) |>
+    ungroup() |>
+    transmute(
+      Model = model,
+      `Test RMSE` = round(rmse, 1),
+      `Test MAE` = round(mae, 1),
+      `Test R2` = round(rsq, 3),
+      `CV RMSE` = round(`CV RMSE`, 1),
+      `Time-test RMSE` = round(`rmse (time)`, 1),
+      `Time-test MAE` = round(`mae (time)`, 1),
+      `Time-test R2` = round(`rsq (time)`, 3)
+    ) |>
+    arrange(`Test RMSE`)
+
+  model_rows <- comparison_table |> filter(!str_starts(Model, "Baseline"))
+  winner_row <- model_rows |> ungroup() |> slice_min(`Test RMSE`, n = 1, with_ties = FALSE)
+  winner_name <- winner_row$Model[[1]]
+  winner_mae <- winner_row$`Test MAE`[[1]]
+  winner_rmse <- winner_row$`Test RMSE`[[1]]
+  weekday_baseline_rmse <- comparison_table |>
+    filter(Model == "Baseline: weekday average") |>
+    pull(`Test RMSE`) |>
+    first()
+}
+```
+
+```{r}
+#| label: comparison-table-print
+#| echo: false
+if (data_ready) {
+  comparison_table |>
+    knitr::kable(caption = "Ranked model comparison: random-split test, 5-fold CV, and 2021–2024 → 2025 time split. Lower RMSE/MAE is better; higher R2 is better. Baselines have no CV row — they are not fitted workflows.", align = c("l", rep("r", 7)))
+}
+```
+
+::: {.qsr-takeaway}
+**Takeaway:** Judge the winner on all three views. If the ranking flips between the random test and the time test, trust the time test more for planning: it is the only view where the model predicts a year it has never seen.
+:::
+::::
+
+:::: {.qsr-scene}
+## The winner, and what drives it
+
+::: {.qsr-scene-intro}
+Only the winning workflow is interpreted in detail — the Week 12 rule is that there is no point interpreting a model before its metrics justify it. For a linear, lasso, or ridge winner these are the largest coefficients; for a tree winner they are the rpart variable importance values.
+:::
+
+```{r}
+#| label: winner-interpretation
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show R code"
+if (data_ready) {
+  winner_fit <- if (winner_name == "Lasso + Recipe v2") {
+    lasso_tuned_fit
+  } else {
+    model_fits[[winner_name]]
+  }
+
+  if (winner_name == "Tree + Recipe v2") {
+    importance <- extract_fit_engine(winner_fit)$variable.importance
+    tibble(Term = names(importance), Importance = as.numeric(importance)) |>
+      arrange(desc(Importance)) |>
+      slice_head(n = 10) |>
+      transmute(Term, Importance = round(Importance, 1)) |>
+      knitr::kable(caption = paste0("Winning workflow (", winner_name, "): variable importance"),
+                   align = c("l", "r"))
+  } else {
+    winner_fit |>
+      extract_fit_parsnip() |>
+      tidy() |>
+      filter(term != "(Intercept)", !is.na(estimate)) |>
+      arrange(desc(abs(estimate))) |>
+      slice_head(n = 10) |>
+      transmute(Term = term, Estimate = round(estimate, 1)) |>
+      knitr::kable(caption = paste0("Winning workflow (", winner_name, "): largest coefficients"),
+                   align = c("l", "r"))
+  }
+}
+```
+
+::: {.qsr-key-finding}
+**Recommendation:** the winning workflow is **`r winner_name`**, with a test MAE of **`r scales::comma(winner_mae)` units per day** (test RMSE `r scales::comma(winner_rmse)`). In business terms, a typical day's prediction is off by about that many units — useful for setting a prep buffer and staffing range, not as an exact order quantity.
+:::
+
+::: {.qsr-takeaway}
+**Takeaway:** A model earns a recommendation by beating both baselines and staying consistent across the test, CV, and time-split views — not by winning one metric on one split. If the table above shows the winner behind the weekday baseline on any view, the honest recommendation is the baseline, and the modeling result is "the calendar already explains most of what these predictors can."
+:::
+::::
+
+```{r}
+#| label: use-model-defaults
+#| include: false
+# Defaults so the text below still renders if the source files are missing;
+# the deploy chunk overwrites them when the data is present.
+winner_time_mae <- NA_real_
+event_lift_all <- NA_real_
+event_lift_event_days <- NA_real_
+event_days_2025 <- NA_integer_
+jan_temp_median <- NA_real_
+jan_precip_median <- NA_real_
+jan_precip_type <- NA_character_
+```
+
+:::: {.qsr-scene}
+## Using the model: a one-week forecast and the event effect
+
+::: {.qsr-scene-intro}
+The assessment is finished, so the winning workflow (**`r winner_name`**) can finally be put to work. For use, it is refitted on *all* of the modeling days instead of the 80% training split: with the model already chosen and honestly assessed, holding back data would only throw away information. The honest error estimate does **not** come from this refit — it still comes from the assessment above, and the planning numbers below use the conservative time-test MAE, not the random-split figure.
+:::
+
+```{r}
+#| label: deploy-refit
+#| echo: true
+#| code-fold: true
+#| code-summary: "Show R code"
+if (data_ready) {
+  deploy_workflow <- if (winner_name == "Lasso + Recipe v2") {
+    lasso_tuned_workflow
+  } else {
+    model_workflows[[winner_name]]
+  }
+  deploy_fit <- deploy_workflow |> fit(data = modeling_data)
+
+  winner_time_row <- comparison_table |>
+    ungroup() |>
+    filter(Model == winner_name)
+  winner_time_mae <- if ("Time-test MAE" %in% names(winner_time_row)) {
+    winner_time_row$`Time-test MAE`[[1]]
+  } else {
+    NA_real_
+  }
+  if (!is.finite(winner_time_mae)) {
+    winner_time_mae <- winner_mae
+  }
+
+  jan_rows <- modeling_data |> filter(month == "Jan")
+  jan_temp_median <- median(jan_rows$avg_temp_f, na.rm = TRUE)
+  jan_precip_median <- median(jan_rows$precip_inches, na.rm = TRUE)
+  jan_precip_type <- jan_rows |>
+    filter(!is.na(precip_type)) |>
+    count(precip_type, sort = TRUE) |>
+    ungroup() |>
+    slice_head(n = 1) |>
+    pull(precip_type)
+
+  last_date <- max(modeling_data$date)
+  forecast_dates <- seq(last_date + 1, by = "day", length.out = 7)
+  forecast_month_num <- as.integer(format(forecast_dates, "%m"))
+  forecast_weekday <- weekdays(forecast_dates)
+
+  forecast_data <- tibble(
+    date = forecast_dates,
+    daily_demand = NA_real_,
+    day_of_week = factor(forecast_weekday, levels = levels(modeling_data$day_of_week)),
+    month = factor(month.abb[forecast_month_num], levels = levels(modeling_data$month)),
+    year = as.integer(format(forecast_dates, "%Y")),
+    is_weekend = factor(if_else(forecast_weekday %in% c("Saturday", "Sunday"), "Yes", "No"),
+                         levels = levels(modeling_data$is_weekend)),
+    is_holiday = factor(if_else(forecast_dates == as.Date(paste0(format(forecast_dates, "%Y"), "-01-01")), "Yes", "No"),
+                         levels = levels(modeling_data$is_holiday)),
+    season = factor(
+      case_when(
+        forecast_month_num %in% c(12, 1, 2) ~ "Winter",
+        forecast_month_num %in% 3:5 ~ "Spring",
+        forecast_month_num %in% 6:8 ~ "Summer",
+        TRUE ~ "Fall"
+      ),
+      levels = levels(modeling_data$season)
+    ),
+    avg_temp_f = jan_temp_median,
+    precip_inches = jan_precip_median,
+    precip_type = factor(as.character(jan_precip_type), levels = levels(modeling_data$precip_type)),
+    event_group = factor("No special event", levels = levels(modeling_data$event_group))
+  )
+
+  forecast_preds <- predict(deploy_fit, new_data = forecast_data)$.pred
+  forecast_table <- forecast_data |>
+    mutate(.pred = forecast_preds) |>
+    transmute(
+      Date = date,
+      Weekday = as.character(day_of_week),
+      `Predicted units` = scales::comma(round(.pred)),
+      `Planning range (units)` = paste0(
+        scales::comma(round(.pred - winner_time_mae)), " – ",
+        scales::comma(round(.pred + winner_time_mae))
+      )
+    )
+
+  rows_2025 <- modeling_data |> filter(year == 2025)
+  preds_as_is <- predict(deploy_fit, new_data = rows_2025)$.pred
+  rows_2025_no_event <- rows_2025 |>
+    mutate(event_group = factor("No special event", levels = levels(modeling_data$event_group)))
+  preds_no_event <- predict(deploy_fit, new_data = rows_2025_no_event)$.pred
+  event_diff <- preds_as_is - preds_no_event
+  event_lift_all <- mean(event_diff)
+  had_event <- as.character(rows_2025$event_group) != "No special event"
+  event_days_2025 <- sum(had_event)
+  event_lift_event_days <- mean(event_diff[had_event])
+}
+```
+
+**Assumptions for this demonstration.** The calendar, weather, and event tables end on 2025-12-31, so the forecast week is built by assumption, not from records: the holiday flag is set for January 1 only, temperature and precipitation are set to the January medians from the data (**`r scales::comma(round(jan_temp_median, 1))` °F** and **`r scales::comma(round(jan_precip_median, 2))` inches**), precipitation type is set to January's most common type in the data (**`r as.character(jan_precip_type)`**), and every day is treated as a no-special-event day. This shows how the model would be used in planning; it is not a claim about that actual week.
+
+```{r}
+#| label: forecast-table-print
+#| echo: false
+if (data_ready) {
+  forecast_table |>
+    knitr::kable(caption = "One-week demonstration forecast from the refitted winning workflow. The planning range is the prediction plus/minus the winner's time-test MAE — a prep and staffing range, not a confidence interval.", align = c("l", "l", "r", "r"))
+}
+```
+
+**The event effect, in units.** The refitted winner can also price an event day. Predicting every day of 2025 twice — once as recorded, and once with the event group forced to "No special event" for every row — gives the model's estimated event lift directly in units: **`r scales::comma(round(event_lift_all, 1))` units per day** averaged over the whole year, and **`r scales::comma(round(event_lift_event_days, 1))` units per day** on the **`r event_days_2025` days** that actually had a special event. This is an association from the calendar and event indicators, not proof that events cause the lift — but it is the number an owner would use to decide extra prep on event days. The sign agrees with the winner's coefficients table above, where "No special event" carries a negative estimate; the counterfactual difference, not that normalized coefficient, is the figure in units.
+
+::: {.qsr-takeaway}
+**Takeaway:** The owner plans the week from the forecast's planning range, not the single predicted number; adds roughly **`r scales::comma(round(event_lift_event_days))` units** of prep on a special-event day; and expects a typical miss around the time-test MAE (about **`r scales::comma(round(winner_time_mae))` units per day**) — the conservative error from predicting a year the model had never seen.
+:::
+::::
+
+# What did not work, and the limits {#limits}
+
+:::: {.qsr-scene}
+## Honest limits of this modeling
+
+- **One restaurant.** Everything here is R07 in Minneapolis. Nothing transfers to another location without refitting and re-assessing.
+- **Random vs time split.** The random test split mixes years, so its metrics are optimistic for a seasonal business. The time-split columns are the conservative view.
+- **Weather is context, not a cause.** Temperature and precipitation are associated with demand; this page does not show they cause it, and forecast weather at planning time will be less accurate than the recorded weather used here.
+- **Monthly marketing is excluded, on purpose.** Ad spend and social posts are monthly, so repeating them on daily rows would invent daily precision the data does not have.
+- **Listed calendar effects only.** The models know weekday, month, season, holidays, and the four named local events. They know nothing about promotions at item level, competitor actions, or closures.
+- **Known specification issue.** The weekend flag overlaps the Saturday/Sunday dummies, so the linear fits drop one aliased term (the Week 12 rank-deficiency caution). Predictions are unaffected, but individual coefficients for those terms should not be over-interpreted.
+::::
+
+## Final thought
+
+Stage 1 showed demand has a rhythm: summer peaks, weekday patterns, and event days. This page shows how far that rhythm alone can take a prediction, where it breaks (the residuals and the time split), and what a defensible forecast error looks like in units per day. The next improvement is not a fancier model — it is better information at prediction time, starting with item-level promotion calendars and actual weather forecasts.

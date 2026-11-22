@@ -6,6 +6,7 @@ project:
     - data.qmd
     - eda.qmd
     - report.qmd
+    - modeling.qmd
     - slides.qmd
     - quarto-guide.qmd
     - github-setup.qmd
@@ -26,6 +27,8 @@ website:
         href: eda.qmd
       - text: "Analysis report"
         href: report.qmd
+      - text: "Modeling"
+        href: modeling.qmd
       - text: "Slides"
         href: slides.qmd
     right:

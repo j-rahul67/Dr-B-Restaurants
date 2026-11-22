@@ -77,3 +77,67 @@ low_month <- as.character(monthly |> slice_min(avg, n = 1, with_ties = FALSE) |>
 ::: {.callout-note}
 Stage 1 ends with descriptive analysis and business recommendations. No machine-learning model is included.
 :::
+
+## Stage 2: from describing demand to predicting it
+
+**First analysis (Stage 1): what happened. Updated analysis (Stage 2): what can we predict, and how wrong might we be?**
+
+- Stage 2 adds Weeks 8-12: modeling, predictions, and assessment on the same R07 daily data
+- Numbers on these slides are from the rendered Modeling page, Nov 22, 2026, not typed from a plan
+
+::: {.notes}
+Week 15 structure: first show what Stage 1 described, then show what Stage 2 changed.
+:::
+
+## Week 8: my first model, and the split-first rule
+
+- Target: total daily demand for R07, one row per date, a regression problem
+- Split first: 1,460 training days / 366 test days, with a seed, before any preprocessing
+- Recipe v1 (lean): median imputation for numbers, dummies for weekday and month, no normalization for a plain linear model
+- The recipe is prepped inside the workflow on training data only, so the test set does not leak into the fit
+
+::: {.notes}
+The biggest Week 8 lesson: the recipe is prepped inside the workflow on training data only, or the test set leaks.
+:::
+
+## Week 10: predictions, judged against baselines
+
+- Every model predicts the same held-out test days
+- Two baselines predicted too: overall mean (test RMSE 428.0) and weekday average (test RMSE 383.0)
+- The winner beats both by a wide margin: test RMSE 130.7, against 383.0 for the weekday baseline
+- Predicted-vs-actual and residuals-over-time charts on the Modeling page show where the model fails, not just how much
+
+::: {.notes}
+A model that cannot beat the weekday average has learned nothing. The baselines keep the results honest.
+:::
+
+## Weeks 11-12: assessment before recommendation
+
+One ranked table: test RMSE and MAE, 5-fold CV RMSE, and a time split (train 2021-2024, test 2025). Only the lasso penalty was tuned, on the folds, never on the test set.
+
+| Model | Test RMSE | Test MAE | CV RMSE | Time-test RMSE |
+|---|---|---|---|---|
+| LM + Recipe v2 | 130.7 | 84.8 | 110.6 | 134.2 |
+| Lasso + Recipe v2 | 130.8 | 85.0 | 110.8 | 134.1 |
+| Ridge + Recipe v2 | 137.8 | 89.8 | 116.1 | 137.8 |
+| Tree + Recipe v2 | 192.7 | 140.7 | 183.2 | 178.8 |
+| LM + Recipe v1 | 196.3 | 114.0 | 166.4 | 169.6 |
+| Weekday average | 383.0 | - | - | 373.1 |
+| Overall mean | 428.0 | - | - | 407.4 |
+
+**Winner: LM + Recipe v2** - test RMSE 130.7, MAE 84.8 units per day, R-squared 0.908 (time-test R-squared 0.924). Recipe v2, with season, events, precipitation type, and normalization, clearly beat the lean recipe, and the ranking holds across test, CV, and the time split.
+
+::: {.notes}
+Weeks 11-12 changed my order of work: metrics first, interpretation second, recommendation last. Lasso essentially ties LM on the time split, 134.1 against 134.2.
+:::
+
+## What I learned, in one slide
+
+- First analysis (Stage 1): describe honestly, keep the unit of observation straight, report negative results
+- Updated analysis (Stage 2): split first, compare against baselines, assess three ways before recommending
+- The course moved me from "what happened" to "what can we predict, and how wrong might we be" - and to saying the second part out loud
+- Next step if I continued: item-level promotion data and real weather forecasts as predictors
+
+::: {.notes}
+The course moved me from what happened to what we can predict, and how wrong we might be, and to saying the second part out loud.
+:::

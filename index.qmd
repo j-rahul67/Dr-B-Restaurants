@@ -52,6 +52,7 @@ Minneapolis
 - **[Data](data.qmd)** — the source tables used and how they connect.
 - **[Exploration](eda.qmd)** — understand the sales rows, establish quantity baselines, compare groups, and choose charts based on the question.
 - **[Analysis report](report.qmd)** — the business story, relevant graphs, and practical takeaways.
+- **[Modeling](modeling.qmd)** — predicting daily demand with tidymodels: two recipes, five workflows, and a full assessment (test, cross-validation, and a time-based split).
 - **[Slides](slides.qmd)** — a concise presentation of the main findings.
 
 ## The story in brief
@@ -62,4 +63,17 @@ Minneapolis
 
 **What is worth testing:** promotions differ by category; weather and marketing show associations that need careful interpretation; price and preparation time show little overall linear relationship with average item-day quantity.
 
-The report uses the graph types covered in Weeks 1–5, including ranking bars, lines, distributions, scatterplots, correlation displays, and faceting. It stays within descriptive analysis and does not add machine learning.
+The report uses the graph types covered in Weeks 1–5, including ranking bars, lines, distributions, scatterplots, correlation displays, and faceting, and stays within descriptive analysis. The [Modeling](modeling.qmd) page is the Stage 2 extension: it applies the Weeks 8–12 tidymodels lessons to predict daily demand and assesses every model against simple baselines before recommending one.
+
+## Learning map — where each course week is used
+
+| Week | Course concept | Where it is used in this project | What it produced |
+|---|---|---|---|
+| Weeks 1–3 | Getting started, basic and advanced manipulations | [Data](data.qmd) page and [Exploration](eda.qmd) steps 1–4 | The eight joined source tables, data-quality checks, and the daily demand table |
+| Weeks 4–5 | Basic and advanced visualizations | [Exploration](eda.qmd) step 5 and every chart in the [Analysis report](report.qmd) | Ranking bars, line charts, boxplots/violins, scatterplots with smoothing, correlation heatmap, and faceting |
+| Week 6 | Quarto workshop | This website itself — its pages, navigation, and code folding | A reproducible Quarto site where every number is computed from the data |
+| Week 8 | Intro to modeling, recipes and parsnip | [Modeling](modeling.qmd) — Week 8 section | The first linear model for daily demand, fitted on training data only |
+| Week 9 | Core tidymodels packages | [Modeling](modeling.qmd) — Week 9 section | Two recipes, four model specs (LM, Lasso, Ridge, Tree), five workflows, and 5-fold resamples |
+| Week 10 | Making predictions | [Modeling](modeling.qmd) — Week 10 section | Test-set predictions, predicted-vs-actual charts, and residuals over time |
+| Weeks 11–12 | Model assessment and interpretation | [Modeling](modeling.qmd) — assessment section | One ranked table (test + CV + time split), lasso penalty tuning, and a named winning model |
+| Week 15 | Communicating results | [Slides](slides.qmd) | The presentation of what was learned and what was implemented |
