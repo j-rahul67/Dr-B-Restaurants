@@ -110,6 +110,10 @@ ul.task-list li input[type="checkbox"] {
 <span class="menu-text">Analysis report</span></a>
   </li>  
   <li class="nav-item">
+    <a class="nav-link" href="./modeling.html"> 
+<span class="menu-text">Modeling</span></a>
+  </li>  
+  <li class="nav-item">
     <a class="nav-link" href="./slides.html"> 
 <span class="menu-text">Slides</span></a>
   </li>  
@@ -207,6 +211,7 @@ ul.task-list li input[type="checkbox"] {
 <li><strong><a href="./data.html">Data</a></strong> — the source tables used and how they connect.</li>
 <li><strong><a href="./eda.html">Exploration</a></strong> — understand the sales rows, establish quantity baselines, compare groups, and choose charts based on the question.</li>
 <li><strong><a href="./report.html">Analysis report</a></strong> — the business story, relevant graphs, and practical takeaways.</li>
+<li><strong><a href="./modeling.html">Modeling</a></strong> — predicting daily demand with tidymodels: two recipes, five workflows, and a full assessment (test, cross-validation, and a time-based split).</li>
 <li><strong><a href="./slides.html">Slides</a></strong> — a concise presentation of the main findings.</li>
 </ul>
 </section>
@@ -215,7 +220,70 @@ ul.task-list li input[type="checkbox"] {
 <p><strong>What sells:</strong> drinks and a small group of familiar items account for much of the recorded volume.</p>
 <p><strong>When it sells:</strong> demand rises into summer, and daily patterns vary by weekday and category.</p>
 <p><strong>What is worth testing:</strong> promotions differ by category; weather and marketing show associations that need careful interpretation; price and preparation time show little overall linear relationship with average item-day quantity.</p>
-<p>The report uses the graph types covered in Weeks 1–5, including ranking bars, lines, distributions, scatterplots, correlation displays, and faceting. It stays within descriptive analysis and does not add machine learning.</p>
+<p>The report uses the graph types covered in Weeks 1–5, including ranking bars, lines, distributions, scatterplots, correlation displays, and faceting, and stays within descriptive analysis. The <a href="./modeling.html">Modeling</a> page is the Stage 2 extension: it applies the Weeks 8–12 tidymodels lessons to predict daily demand and assesses every model against simple baselines before recommending one.</p>
+</section>
+<section id="learning-map-where-each-course-week-is-used" class="level2">
+<h2 class="anchored" data-anchor-id="learning-map-where-each-course-week-is-used">Learning map — where each course week is used</h2>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Week</th>
+<th>Course concept</th>
+<th>Where it is used in this project</th>
+<th>What it produced</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Weeks 1–3</td>
+<td>Getting started, basic and advanced manipulations</td>
+<td><a href="./data.html">Data</a> page and <a href="./eda.html">Exploration</a> steps 1–4</td>
+<td>The eight joined source tables, data-quality checks, and the daily demand table</td>
+</tr>
+<tr class="even">
+<td>Weeks 4–5</td>
+<td>Basic and advanced visualizations</td>
+<td><a href="./eda.html">Exploration</a> step 5 and every chart in the <a href="./report.html">Analysis report</a></td>
+<td>Ranking bars, line charts, boxplots/violins, scatterplots with smoothing, correlation heatmap, and faceting</td>
+</tr>
+<tr class="odd">
+<td>Week 6</td>
+<td>Quarto workshop</td>
+<td>This website itself — its pages, navigation, and code folding</td>
+<td>A reproducible Quarto site where every number is computed from the data</td>
+</tr>
+<tr class="even">
+<td>Week 8</td>
+<td>Intro to modeling, recipes and parsnip</td>
+<td><a href="./modeling.html">Modeling</a> — Week 8 section</td>
+<td>The first linear model for daily demand, fitted on training data only</td>
+</tr>
+<tr class="odd">
+<td>Week 9</td>
+<td>Core tidymodels packages</td>
+<td><a href="./modeling.html">Modeling</a> — Week 9 section</td>
+<td>Two recipes, four model specs (LM, Lasso, Ridge, Tree), five workflows, and 5-fold resamples</td>
+</tr>
+<tr class="even">
+<td>Week 10</td>
+<td>Making predictions</td>
+<td><a href="./modeling.html">Modeling</a> — Week 10 section</td>
+<td>Test-set predictions, predicted-vs-actual charts, and residuals over time</td>
+</tr>
+<tr class="odd">
+<td>Weeks 11–12</td>
+<td>Model assessment and interpretation</td>
+<td><a href="./modeling.html">Modeling</a> — assessment section</td>
+<td>One ranked table (test + CV + time split), lasso penalty tuning, and a named winning model</td>
+</tr>
+<tr class="even">
+<td>Week 15</td>
+<td>Communicating results</td>
+<td><a href="./slides.html">Slides</a></td>
+<td>The presentation of what was learned and what was implemented</td>
+</tr>
+</tbody>
+</table>
 
 
 </section>

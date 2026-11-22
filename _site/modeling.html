@@ -1,0 +1,1792 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.38">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Student Analyst">
+
+<title>Predicting Daily Demand – QSR Daily Demand</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-15634bcf2e68342d4ad2dfa704d543f6.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-d3fc997fcb364d2a35ec7d29e58d513c.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<style>html{ scroll-behavior: smooth; }</style>
+
+
+<link rel="stylesheet" href="assets/qsr-theme.css">
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">QSR Daily Demand</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="./index.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./data.html"> 
+<span class="menu-text">Data</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./eda.html"> 
+<span class="menu-text">Exploration</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./report.html"> 
+<span class="menu-text">Analysis report</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link active" href="./modeling.html" aria-current="page"> 
+<span class="menu-text">Modeling</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./slides.html"> 
+<span class="menu-text">Slides</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-project-guide" role="link" data-bs-toggle="dropdown" aria-expanded="false">
+ <span class="menu-text">Project guide</span>
+    </a>
+    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="nav-menu-project-guide">    
+        <li>
+    <a class="dropdown-item" href="./quarto-guide.html">
+ <span class="dropdown-text">Quarto guide</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="./github-setup.html">
+ <span class="dropdown-text">GitHub / Netlify</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="./notes.html">
+ <span class="dropdown-text">Project notes</span></a>
+  </li>  
+    </ul>
+  </li>
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-full page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content column-page" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Predicting Daily Demand</h1>
+<p class="subtitle lead">From describing demand to predicting it, with tidymodels</p>
+</div>
+
+
+
+<div class="quarto-title-meta column-page">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Student Analyst </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div class="qsr-hero">
+<p><span class="qsr-eyebrow">Stage 2 · Predictive modeling · R07</span></p>
+<section id="can-we-predict-tomorrows-demand-for-r07" class="level2">
+<h2 class="anchored" data-anchor-id="can-we-predict-tomorrows-demand-for-r07">Can we predict tomorrow’s demand for R07?</h2>
+<p>Stage 1 described what sold and when. This page takes the next course step: predict <strong>total daily demand</strong> (units per restaurant-day) for R07 in Minneapolis, using only information that would be known in advance — calendar, weather, and local events. It follows the course order: one first model (Week 8), the core tidymodels pieces (Week 9), predictions on unseen data (Week 10), and a full assessment before any model is recommended (Weeks 11–12).</p>
+<div class="qsr-metrics">
+<div class="qsr-metric">
+<p><span class="qsr-metric-label">Days modeled</span></p>
+<p><strong>1,826</strong></p>
+<p>One row per date, 2021–2025</p>
+</div>
+<div class="qsr-metric">
+<p><span class="qsr-metric-label">Outcome</span></p>
+<p><strong>Daily demand</strong></p>
+<p>Total recorded units per day</p>
+</div>
+<div class="qsr-metric">
+<p><span class="qsr-metric-label">Recipes</span></p>
+<p><strong>2</strong></p>
+<p>Lean (v1) and full (v2)</p>
+</div>
+<div class="qsr-metric">
+<p><span class="qsr-metric-label">Workflows compared</span></p>
+<p><strong>5 + 2 baselines</strong></p>
+<p>Judged on test, CV, and a time split</p>
+</div>
+</div>
+</section>
+</div>
+<p>The modeling dataset keeps the Stage 1 data decisions: missing sales quantities stay missing in the item-day data and daily totals sum the recorded quantities; temperatures coded -99 are treated as missing; the 55 Minneapolis dates with no weather record keep missing weather values, which the recipes impute from the training data only.</p>
+<section id="week8" class="level1">
+<h1>Week 8 — Intro to modeling: one honest first model</h1>
+<section id="split-first-and-set-the-seed" class="level2 qsr-scene">
+<h2 class="anchored" data-anchor-id="split-first-and-set-the-seed">Split first, and set the seed</h2>
+<div class="qsr-scene-intro">
+<p>Following the Week 8 / Week 11 class pattern, the data is split 80/20 into training and test sets <em>before</em> any recipe is fitted, with a seed so the split can be reproduced. The test set is not touched until the predictions section. One caution, stated now and tested later: a random split mixes all five years in both sets, so the assessment also repeats the comparison with a time-based split.</p>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Show R code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (data_ready) {</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set.seed</span>(<span class="dv">681</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  daily_split <span class="ot">&lt;-</span> <span class="fu">initial_split</span>(modeling_data, <span class="at">prop =</span> <span class="fl">0.80</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>  train_data <span class="ot">&lt;-</span> <span class="fu">training</span>(daily_split)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  test_data <span class="ot">&lt;-</span> <span class="fu">testing</span>(daily_split)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  train_days <span class="ot">&lt;-</span> <span class="fu">nrow</span>(train_data)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  test_days <span class="ot">&lt;-</span> <span class="fu">nrow</span>(test_data)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">Set =</span> <span class="fu">c</span>(<span class="st">"Training"</span>, <span class="st">"Test"</span>),</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">Days =</span> <span class="fu">c</span>(train_days, test_days),</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">Date range</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">c</span>(</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>      <span class="fu">paste</span>(<span class="fu">min</span>(train_data<span class="sc">$</span>date), <span class="st">"to"</span>, <span class="fu">max</span>(train_data<span class="sc">$</span>date)),</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>      <span class="fu">paste</span>(<span class="fu">min</span>(test_data<span class="sc">$</span>date), <span class="st">"to"</span>, <span class="fu">max</span>(test_data<span class="sc">$</span>date))</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">caption =</span> <span class="st">"Random 80/20 split of the daily data (seed 681)"</span>, <span class="at">align =</span> <span class="fu">c</span>(<span class="st">"l"</span>, <span class="st">"r"</span>, <span class="st">"l"</span>))</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Random 80/20 split of the daily data (seed 681)</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Set</th>
+<th style="text-align: right;">Days</th>
+<th style="text-align: left;">Date range</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Training</td>
+<td style="text-align: right;">1460</td>
+<td style="text-align: left;">2021-01-03 to 2025-12-31</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Test</td>
+<td style="text-align: right;">366</td>
+<td style="text-align: left;">2021-01-01 to 2025-12-26</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="qsr-takeaway">
+<p><strong>Takeaway:</strong> Every preprocessing number on this page (medians, modes, means, standard deviations) is learned from the training rows only, inside the workflow. Nothing is prepped on the full data, so no test information leaks into the models.</p>
+</div>
+</section>
+<section id="recipe-v1-lean-a-linear-model-and-one-workflow" class="level2 qsr-scene">
+<h2 class="anchored" data-anchor-id="recipe-v1-lean-a-linear-model-and-one-workflow">Recipe v1 (lean), a linear model, and one workflow</h2>
+<div class="qsr-scene-intro">
+<p>Recipe v1 uses only calendar and headline weather predictors. Numeric missing values are imputed with the median (the Week 8 rule: median for numbers, mode for text), and categorical predictors become dummies. There is deliberately no normalization step: a plain linear model does not need it, and Recipe v2 is where scaling is introduced for the penalized model.</p>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Show R code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (data_ready) {</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  recipe_v1 <span class="ot">&lt;-</span> <span class="fu">recipe</span>(daily_demand <span class="sc">~</span> day_of_week <span class="sc">+</span> month <span class="sc">+</span> is_weekend <span class="sc">+</span> is_holiday <span class="sc">+</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>                        avg_temp_f <span class="sc">+</span> precip_inches,</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>                      <span class="at">data =</span> train_data) <span class="sc">|&gt;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">step_impute_median</span>(<span class="fu">all_numeric_predictors</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">step_dummy</span>(<span class="fu">all_nominal_predictors</span>())</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  lm_spec <span class="ot">&lt;-</span> <span class="fu">linear_reg</span>() <span class="sc">|&gt;</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">set_engine</span>(<span class="st">"lm"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">set_mode</span>(<span class="st">"regression"</span>)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>  lm_v1_workflow <span class="ot">&lt;-</span> <span class="fu">workflow</span>() <span class="sc">|&gt;</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">add_recipe</span>(recipe_v1) <span class="sc">|&gt;</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">add_model</span>(lm_spec)</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>  lm_v1_fit <span class="ot">&lt;-</span> lm_v1_workflow <span class="sc">|&gt;</span> <span class="fu">fit</span>(<span class="at">data =</span> train_data)</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>  lm_v1_fit <span class="sc">|&gt;</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">extract_fit_parsnip</span>() <span class="sc">|&gt;</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">tidy</span>() <span class="sc">|&gt;</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(estimate)) <span class="sc">|&gt;</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">transmute</span>(</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>      <span class="at">Term =</span> term,</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>      <span class="at">Estimate =</span> <span class="fu">round</span>(estimate, <span class="dv">1</span>),</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>      <span class="st">`</span><span class="at">Std. error</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(std.error, <span class="dv">1</span>),</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>      <span class="st">`</span><span class="at">p-value</span><span class="st">`</span> <span class="ot">=</span> scales<span class="sc">::</span><span class="fu">number</span>(p.value, <span class="at">accuracy =</span> <span class="fl">0.001</span>)</span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">|&gt;</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>    knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">caption =</span> <span class="st">"Linear model (Recipe v1) coefficients, fitted on training data only"</span>, <span class="at">align =</span> <span class="fu">c</span>(<span class="st">"l"</span>, <span class="st">"r"</span>, <span class="st">"r"</span>, <span class="st">"r"</span>))</span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>  lm_v1_fit <span class="sc">|&gt;</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>    <span class="fu">extract_fit_parsnip</span>() <span class="sc">|&gt;</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>    <span class="fu">glance</span>() <span class="sc">|&gt;</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>    <span class="fu">transmute</span>(</span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>      <span class="st">`</span><span class="at">R-squared (train)</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(r.squared, <span class="dv">3</span>),</span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>      <span class="st">`</span><span class="at">Adj. R-squared (train)</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(adj.r.squared, <span class="dv">3</span>),</span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>      <span class="st">`</span><span class="at">Residual SD (train)</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(sigma, <span class="dv">1</span>),</span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>      <span class="at">Observations =</span> nobs</span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">|&gt;</span></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>    knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">caption =</span> <span class="st">"Linear model (Recipe v1) fit summary on training data — not the headline result"</span>, <span class="at">align =</span> <span class="fu">c</span>(<span class="st">"r"</span>, <span class="st">"r"</span>, <span class="st">"r"</span>, <span class="st">"r"</span>))</span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Linear model (Recipe v1) fit summary on training data — not the headline result</caption>
+<colgroup>
+<col style="width: 24%">
+<col style="width: 31%">
+<col style="width: 27%">
+<col style="width: 17%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: right;">R-squared (train)</th>
+<th style="text-align: right;">Adj. R-squared (train)</th>
+<th style="text-align: right;">Residual SD (train)</th>
+<th style="text-align: right;">Observations</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">0.833</td>
+<td style="text-align: right;">0.831</td>
+<td style="text-align: right;">166.3</td>
+<td style="text-align: right;">1460</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="qsr-takeaway">
+<p><strong>Takeaway:</strong> Read the signs, not just the size: weekend and summer-month terms should be positive if the Stage 1 seasonal story is real, and temperature should be positive within this specification. One coefficient is dropped by the fit: the weekend flag overlaps the Saturday/Sunday dummies, the same rank-deficiency caution the Week 12 class file raises for wide recipes. Training R-squared is reported for completeness only — a model is only recommended after the test, cross-validation, and time-split assessment below.</p>
+</div>
+</section>
+</section>
+<section id="week9" class="level1">
+<h1>Week 9 — Core tidymodels packages: recipes, specs, workflows</h1>
+<section id="recipe-v2-full-and-the-resamples" class="level2 qsr-scene">
+<h2 class="anchored" data-anchor-id="recipe-v2-full-and-the-resamples">Recipe v2 (full) and the resamples</h2>
+<div class="qsr-scene-intro">
+<p>Recipe v2 is a controlled change from v1: it adds season, event group, and precipitation type, imputes categorical missing values with the mode, and normalizes the numeric <em>predictors</em> (never the outcome) because the glmnet model in this comparison is scale-sensitive. The 5-fold cross-validation resamples are created here, from the training data, and used in the assessment.</p>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Show R code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (data_ready) {</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  recipe_v2 <span class="ot">&lt;-</span> <span class="fu">recipe</span>(daily_demand <span class="sc">~</span> day_of_week <span class="sc">+</span> month <span class="sc">+</span> is_weekend <span class="sc">+</span> is_holiday <span class="sc">+</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>                        season <span class="sc">+</span> event_group <span class="sc">+</span> avg_temp_f <span class="sc">+</span> precip_inches <span class="sc">+</span> precip_type,</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>                      <span class="at">data =</span> train_data) <span class="sc">|&gt;</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">step_impute_median</span>(<span class="fu">all_numeric_predictors</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">step_impute_mode</span>(<span class="fu">all_nominal_predictors</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">step_dummy</span>(<span class="fu">all_nominal_predictors</span>()) <span class="sc">|&gt;</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">step_normalize</span>(<span class="fu">all_numeric_predictors</span>())</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set.seed</span>(<span class="dv">681</span>)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>  daily_folds <span class="ot">&lt;-</span> <span class="fu">vfold_cv</span>(train_data, <span class="at">v =</span> <span class="dv">5</span>)</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Class practice from Weeks 8/11: prep and bake the recipe once to verify</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>  <span class="co"># the steps do what they claim before the recipe is trusted in a workflow.</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>  recipe_v2_baked <span class="ot">&lt;-</span> recipe_v2 <span class="sc">|&gt;</span> <span class="fu">prep</span>(<span class="at">training =</span> train_data) <span class="sc">|&gt;</span> <span class="fu">bake</span>(<span class="at">new_data =</span> <span class="cn">NULL</span>)</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">Check =</span> <span class="fu">c</span>(<span class="st">"Rows after prep/bake (training)"</span>, <span class="st">"Columns after prep/bake"</span>, <span class="st">"Missing values left"</span>),</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">Result =</span> <span class="fu">c</span>(</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>      scales<span class="sc">::</span><span class="fu">comma</span>(<span class="fu">nrow</span>(recipe_v2_baked)),</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>      scales<span class="sc">::</span><span class="fu">comma</span>(<span class="fu">ncol</span>(recipe_v2_baked)),</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>      scales<span class="sc">::</span><span class="fu">comma</span>(<span class="fu">sum</span>(<span class="fu">is.na</span>(recipe_v2_baked)))</span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>    knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">caption =</span> <span class="st">"Recipe v2 prep/bake verification on training data"</span>, <span class="at">align =</span> <span class="fu">c</span>(<span class="st">"l"</span>, <span class="st">"r"</span>))</span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Recipe v2 prep/bake verification on training data</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Check</th>
+<th style="text-align: right;">Result</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Rows after prep/bake (training)</td>
+<td style="text-align: right;">1,460</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Columns after prep/bake</td>
+<td style="text-align: right;">31</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Missing values left</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="qsr-takeaway">
+<p><strong>Takeaway:</strong> Recipe v1 vs v2 is one experiment, not two unrelated models: same split, same seed, same metrics. Any performance difference can then be credited to the added predictors and steps, not to a different data split.</p>
+</div>
+</section>
+<section id="four-model-specs-five-workflows" class="level2 qsr-scene">
+<h2 class="anchored" data-anchor-id="four-model-specs-five-workflows">Four model specs, five workflows</h2>
+<div class="qsr-scene-intro">
+<p>The parsnip specs mirror the Week 11/12 class set — linear regression, lasso regression, ridge regression, and a decision tree, all in regression mode because daily demand is a number. Ridge is included because Week 12’s Activity 3 fits a ridge model in class; it uses the same glmnet engine as the lasso, with mixture = 0 (all penalty on the squared coefficients) instead of 1. The lasso and ridge penalties are fixed placeholders (0.01) at this stage; only the lasso penalty is tuned, in the assessment section, and only there — ridge keeps its placeholder so the assessment tunes exactly one model and stays readable. Random forest and boosting are <em>not</em> added: in the Week 8/11/12 materials they are mentioned in prose and suggested as future work, but no completed class file fits them, so they are left as a future extension rather than presented as class work.</p>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Show R code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (data_ready) {</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  lasso_spec <span class="ot">&lt;-</span> <span class="fu">linear_reg</span>(<span class="at">penalty =</span> <span class="fl">0.01</span>, <span class="at">mixture =</span> <span class="dv">1</span>) <span class="sc">|&gt;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">set_engine</span>(<span class="st">"glmnet"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">set_mode</span>(<span class="st">"regression"</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  ridge_spec <span class="ot">&lt;-</span> <span class="fu">linear_reg</span>(<span class="at">penalty =</span> <span class="fl">0.01</span>, <span class="at">mixture =</span> <span class="dv">0</span>) <span class="sc">|&gt;</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">set_engine</span>(<span class="st">"glmnet"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">set_mode</span>(<span class="st">"regression"</span>)</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>  tree_spec <span class="ot">&lt;-</span> <span class="fu">decision_tree</span>() <span class="sc">|&gt;</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">set_engine</span>(<span class="st">"rpart"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">set_mode</span>(<span class="st">"regression"</span>)</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>  model_workflows <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="st">"LM + Recipe v1"</span> <span class="ot">=</span> <span class="fu">workflow</span>() <span class="sc">|&gt;</span> <span class="fu">add_recipe</span>(recipe_v1) <span class="sc">|&gt;</span> <span class="fu">add_model</span>(lm_spec),</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    <span class="st">"LM + Recipe v2"</span> <span class="ot">=</span> <span class="fu">workflow</span>() <span class="sc">|&gt;</span> <span class="fu">add_recipe</span>(recipe_v2) <span class="sc">|&gt;</span> <span class="fu">add_model</span>(lm_spec),</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Lasso + Recipe v2"</span> <span class="ot">=</span> <span class="fu">workflow</span>() <span class="sc">|&gt;</span> <span class="fu">add_recipe</span>(recipe_v2) <span class="sc">|&gt;</span> <span class="fu">add_model</span>(lasso_spec),</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Ridge + Recipe v2"</span> <span class="ot">=</span> <span class="fu">workflow</span>() <span class="sc">|&gt;</span> <span class="fu">add_recipe</span>(recipe_v2) <span class="sc">|&gt;</span> <span class="fu">add_model</span>(ridge_spec),</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Tree + Recipe v2"</span> <span class="ot">=</span> <span class="fu">workflow</span>() <span class="sc">|&gt;</span> <span class="fu">add_recipe</span>(recipe_v2) <span class="sc">|&gt;</span> <span class="fu">add_model</span>(tree_spec)</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">Workflow =</span> <span class="fu">names</span>(model_workflows),</span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">Recipe =</span> <span class="fu">c</span>(<span class="st">"v1 (lean)"</span>, <span class="st">"v2 (full)"</span>, <span class="st">"v2 (full)"</span>, <span class="st">"v2 (full)"</span>, <span class="st">"v2 (full)"</span>),</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">Model =</span> <span class="fu">c</span>(<span class="st">"Linear regression (lm)"</span>, <span class="st">"Linear regression (lm)"</span>,</span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>              <span class="st">"Lasso, penalty 0.01 placeholder (glmnet)"</span>,</span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>              <span class="st">"Ridge, penalty 0.01 placeholder, not tuned (glmnet)"</span>,</span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>              <span class="st">"Decision tree (rpart)"</span>),</span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">Mode =</span> <span class="st">"Regression"</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>    knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">caption =</span> <span class="st">"The five workflows compared on this page"</span>, <span class="at">align =</span> <span class="fu">c</span>(<span class="st">"l"</span>, <span class="st">"l"</span>, <span class="st">"l"</span>, <span class="st">"l"</span>))</span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>The five workflows compared on this page</caption>
+<colgroup>
+<col style="width: 19%">
+<col style="width: 10%">
+<col style="width: 57%">
+<col style="width: 12%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Workflow</th>
+<th style="text-align: left;">Recipe</th>
+<th style="text-align: left;">Model</th>
+<th style="text-align: left;">Mode</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">LM + Recipe v1</td>
+<td style="text-align: left;">v1 (lean)</td>
+<td style="text-align: left;">Linear regression (lm)</td>
+<td style="text-align: left;">Regression</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">LM + Recipe v2</td>
+<td style="text-align: left;">v2 (full)</td>
+<td style="text-align: left;">Linear regression (lm)</td>
+<td style="text-align: left;">Regression</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Lasso + Recipe v2</td>
+<td style="text-align: left;">v2 (full)</td>
+<td style="text-align: left;">Lasso, penalty 0.01 placeholder (glmnet)</td>
+<td style="text-align: left;">Regression</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Ridge + Recipe v2</td>
+<td style="text-align: left;">v2 (full)</td>
+<td style="text-align: left;">Ridge, penalty 0.01 placeholder, not tuned (glmnet)</td>
+<td style="text-align: left;">Regression</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Tree + Recipe v2</td>
+<td style="text-align: left;">v2 (full)</td>
+<td style="text-align: left;">Decision tree (rpart)</td>
+<td style="text-align: left;">Regression</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="qsr-takeaway">
+<p><strong>Takeaway:</strong> Each workflow carries its own recipe, so fitting a workflow preps the recipe on the training data and trains the model in one step — the workflow is never fitted on test data.</p>
+</div>
+</section>
+</section>
+<section id="week10" class="level1">
+<h1>Week 10 — Making predictions on unseen data</h1>
+<section id="fit-on-training-predict-on-test" class="level2 qsr-scene">
+<h2 class="anchored" data-anchor-id="fit-on-training-predict-on-test">Fit on training, predict on test</h2>
+<div class="qsr-scene-intro">
+<p>Each workflow is fitted once on the training set and used to predict the held-out test days. Two baselines are predicted the same way: the training mean (predict the same number every day) and the weekday average (predict each day by its weekday’s training average). A model that cannot beat the weekday baseline has not learned anything the calendar did not already tell us.</p>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Show R code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (data_ready) {</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  model_fits <span class="ot">&lt;-</span> <span class="fu">lapply</span>(model_workflows, fit, <span class="at">data =</span> train_data)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  test_preds <span class="ot">&lt;-</span> <span class="fu">lapply</span>(model_fits, <span class="cf">function</span>(fit) {</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">predict</span>(fit, <span class="at">new_data =</span> test_data) <span class="sc">|&gt;</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>      <span class="fu">bind_cols</span>(test_data <span class="sc">|&gt;</span> <span class="fu">select</span>(date, day_of_week, daily_demand))</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  all_preds_long <span class="ot">&lt;-</span> <span class="fu">imap_dfr</span>(test_preds, <span class="cf">function</span>(pred_df, model_name) {</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    pred_df <span class="sc">|&gt;</span> <span class="fu">mutate</span>(<span class="at">model =</span> model_name, <span class="at">residual =</span> daily_demand <span class="sc">-</span> .pred)</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>  weekday_baseline <span class="ot">&lt;-</span> train_data <span class="sc">|&gt;</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(day_of_week) <span class="sc">|&gt;</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(<span class="at">weekday_mean =</span> <span class="fu">mean</span>(daily_demand), <span class="at">.groups =</span> <span class="st">"drop"</span>)</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>  baseline_preds <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    test_data <span class="sc">|&gt;</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>      <span class="fu">transmute</span>(date, day_of_week, daily_demand,</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>                <span class="at">.pred =</span> <span class="fu">mean</span>(train_data<span class="sc">$</span>daily_demand),</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>                <span class="at">model =</span> <span class="st">"Baseline: overall mean"</span>),</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>    test_data <span class="sc">|&gt;</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>      <span class="fu">left_join</span>(weekday_baseline, <span class="at">by =</span> <span class="st">"day_of_week"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>      <span class="fu">transmute</span>(date, day_of_week, daily_demand,</span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>                <span class="at">.pred =</span> weekday_mean,</span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>                <span class="at">model =</span> <span class="st">"Baseline: weekday average"</span>)</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">residual =</span> daily_demand <span class="sc">-</span> .pred)</span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>  all_preds_long <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(all_preds_long, baseline_preds)</span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>  initial_test_metrics <span class="ot">&lt;-</span> all_preds_long <span class="sc">|&gt;</span></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">str_starts</span>(model, <span class="st">"Baseline"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(model) <span class="sc">|&gt;</span></span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_modify</span>(<span class="sc">~</span> <span class="fu">reg_metrics</span>(.x, <span class="at">truth =</span> daily_demand, <span class="at">estimate =</span> .pred)) <span class="sc">|&gt;</span></span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(.metric <span class="sc">==</span> <span class="st">"rmse"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>    <span class="fu">arrange</span>(.estimate)</span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a>  provisional_best <span class="ot">&lt;-</span> initial_test_metrics<span class="sc">$</span>model[[<span class="dv">1</span>]]</span>
+<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a>  provisional_preds <span class="ot">&lt;-</span> all_preds_long <span class="sc">|&gt;</span> <span class="fu">filter</span>(model <span class="sc">==</span> provisional_best)</span>
+<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a>  test_preds[[<span class="st">"LM + Recipe v1"</span>]] <span class="sc">|&gt;</span></span>
+<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a>    <span class="fu">slice_head</span>(<span class="at">n =</span> <span class="dv">8</span>) <span class="sc">|&gt;</span></span>
+<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a>    <span class="fu">transmute</span>(<span class="at">Date =</span> date, <span class="at">Weekday =</span> day_of_week,</span>
+<span id="cb5-45"><a href="#cb5-45" aria-hidden="true" tabindex="-1"></a>              <span class="st">`</span><span class="at">Actual units</span><span class="st">`</span> <span class="ot">=</span> scales<span class="sc">::</span><span class="fu">comma</span>(daily_demand),</span>
+<span id="cb5-46"><a href="#cb5-46" aria-hidden="true" tabindex="-1"></a>              <span class="st">`</span><span class="at">Predicted units</span><span class="st">`</span> <span class="ot">=</span> scales<span class="sc">::</span><span class="fu">comma</span>(<span class="fu">round</span>(.pred))) <span class="sc">|&gt;</span></span>
+<span id="cb5-47"><a href="#cb5-47" aria-hidden="true" tabindex="-1"></a>    knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">caption =</span> <span class="st">"First test-set predictions, linear model with Recipe v1"</span>, <span class="at">align =</span> <span class="fu">c</span>(<span class="st">"l"</span>, <span class="st">"l"</span>, <span class="st">"r"</span>, <span class="st">"r"</span>))</span>
+<span id="cb5-48"><a href="#cb5-48" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>First test-set predictions, linear model with Recipe v1</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Date</th>
+<th style="text-align: left;">Weekday</th>
+<th style="text-align: right;">Actual units</th>
+<th style="text-align: right;">Predicted units</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">2021-01-01</td>
+<td style="text-align: left;">Friday</td>
+<td style="text-align: right;">1,435</td>
+<td style="text-align: right;">1,477</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2021-01-02</td>
+<td style="text-align: left;">Saturday</td>
+<td style="text-align: right;">1,234</td>
+<td style="text-align: right;">1,458</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2021-01-05</td>
+<td style="text-align: left;">Tuesday</td>
+<td style="text-align: right;">980</td>
+<td style="text-align: right;">971</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2021-01-08</td>
+<td style="text-align: left;">Friday</td>
+<td style="text-align: right;">1,226</td>
+<td style="text-align: right;">1,333</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2021-01-13</td>
+<td style="text-align: left;">Wednesday</td>
+<td style="text-align: right;">1,049</td>
+<td style="text-align: right;">1,041</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2021-01-19</td>
+<td style="text-align: left;">Tuesday</td>
+<td style="text-align: right;">871</td>
+<td style="text-align: right;">950</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2021-01-23</td>
+<td style="text-align: left;">Saturday</td>
+<td style="text-align: right;">1,420</td>
+<td style="text-align: right;">1,470</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2021-01-26</td>
+<td style="text-align: left;">Tuesday</td>
+<td style="text-align: right;">934</td>
+<td style="text-align: right;">1,006</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="qsr-takeaway">
+<p><strong>Takeaway:</strong> Predictions are only ever made on the test rows. The provisional best workflow by test RMSE is used for the two diagnostic charts below; the final recommendation waits for the full assessment, including tuning and the time split.</p>
+</div>
+</section>
+<section id="predicted-vs-actual" class="level2 qsr-scene">
+<h2 class="anchored" data-anchor-id="predicted-vs-actual">Predicted vs actual</h2>
+<div class="qsr-scene-intro">
+<p>The Week 12 diagnostic: points on the 45-degree line are perfect predictions. Points above the line are over-predictions, below it under-predictions, and a funnel or curve away from the line is a pattern the model is missing.</p>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Show R code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (data_ready) {</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  p_pred_actual <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(provisional_preds, <span class="fu">aes</span>(<span class="at">x =</span> daily_demand, <span class="at">y =</span> .pred)) <span class="sc">+</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_abline</span>(<span class="at">slope =</span> <span class="dv">1</span>, <span class="at">intercept =</span> <span class="dv">0</span>, <span class="at">color =</span> qsr_coral, <span class="at">linewidth =</span> <span class="fl">0.9</span>) <span class="sc">+</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_point</span>(<span class="at">color =</span> qsr_teal, <span class="at">alpha =</span> <span class="fl">0.35</span>, <span class="at">size =</span> <span class="fl">1.8</span>) <span class="sc">+</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_x_continuous</span>(<span class="at">labels =</span> <span class="fu">label_comma</span>()) <span class="sc">+</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_y_continuous</span>(<span class="at">labels =</span> <span class="fu">label_comma</span>()) <span class="sc">+</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Actual daily units"</span>, <span class="at">y =</span> <span class="st">"Predicted daily units"</span>,</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>         <span class="at">caption =</span> <span class="fu">paste0</span>(<span class="st">"Provisional best workflow on test data: "</span>, provisional_best,</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>                          <span class="st">". The coral line is perfect prediction."</span>)) <span class="sc">+</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    theme_business</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">show_chart</span>(p_pred_actual)</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>  p_pred_actual_all <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    all_preds_long <span class="sc">|&gt;</span> <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">str_starts</span>(model, <span class="st">"Baseline"</span>)),</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">x =</span> daily_demand, <span class="at">y =</span> .pred)</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_abline</span>(<span class="at">slope =</span> <span class="dv">1</span>, <span class="at">intercept =</span> <span class="dv">0</span>, <span class="at">color =</span> qsr_coral, <span class="at">linewidth =</span> <span class="fl">0.8</span>) <span class="sc">+</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_point</span>(<span class="at">color =</span> qsr_teal, <span class="at">alpha =</span> <span class="fl">0.3</span>, <span class="at">size =</span> <span class="fl">1.4</span>) <span class="sc">+</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_wrap</span>(<span class="fu">vars</span>(model), <span class="at">ncol =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_x_continuous</span>(<span class="at">labels =</span> <span class="fu">label_comma</span>()) <span class="sc">+</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_y_continuous</span>(<span class="at">labels =</span> <span class="fu">label_comma</span>()) <span class="sc">+</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">"Actual daily units"</span>, <span class="at">y =</span> <span class="st">"Predicted daily units"</span>,</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>         <span class="at">caption =</span> <span class="st">"All five workflows on the same test days, same axes."</span>) <span class="sc">+</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>    theme_business <span class="sc">+</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">strip.text =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">size =</span> <span class="dv">12</span>))</span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">show_chart</span>(p_pred_actual_all)</span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="modeling_files/figure-html/pred-vs-actual-1.png" class="img-fluid figure-img" width="2400"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="modeling_files/figure-html/pred-vs-actual-2.png" class="img-fluid figure-img" width="2400"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="qsr-takeaway">
+<p><strong>Takeaway:</strong> Compare the spread around the line, not the headline metric alone: a model can win on RMSE and still systematically under-predict the busiest days, which are exactly the days the owner plans for.</p>
+</div>
+</section>
+<section id="residuals-over-time" class="level2 qsr-scene">
+<h2 class="anchored" data-anchor-id="residuals-over-time">Residuals over time</h2>
+<div class="qsr-scene-intro">
+<p>Residuals (actual minus predicted) plotted by date show what a single metric hides: stretches where the model is consistently too high or too low usually mean a seasonal or calendar pattern was not captured.</p>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Show R code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (data_ready) {</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  p_residuals_time <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(provisional_preds, <span class="fu">aes</span>(<span class="at">x =</span> date, <span class="at">y =</span> residual)) <span class="sc">+</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>, <span class="at">color =</span> qsr_coral, <span class="at">linewidth =</span> <span class="fl">0.9</span>) <span class="sc">+</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_point</span>(<span class="at">color =</span> qsr_teal, <span class="at">alpha =</span> <span class="fl">0.4</span>, <span class="at">size =</span> <span class="fl">1.6</span>) <span class="sc">+</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"loess"</span>, <span class="at">formula =</span> y <span class="sc">~</span> x, <span class="at">se =</span> <span class="cn">FALSE</span>, <span class="at">color =</span> qsr_navy, <span class="at">linewidth =</span> <span class="fl">0.9</span>) <span class="sc">+</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_y_continuous</span>(<span class="at">labels =</span> <span class="fu">label_comma</span>()) <span class="sc">+</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">x =</span> <span class="cn">NULL</span>, <span class="at">y =</span> <span class="st">"Residual (actual − predicted units)"</span>,</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>         <span class="at">caption =</span> <span class="fu">paste0</span>(<span class="st">"Provisional best workflow: "</span>, provisional_best,</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>                          <span class="st">". Above zero = the model under-predicted that day."</span>)) <span class="sc">+</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    theme_business</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">show_chart</span>(p_residuals_time)</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="modeling_files/figure-html/residuals-time-1.png" class="img-fluid figure-img" width="2400"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="qsr-takeaway">
+<p><strong>Takeaway:</strong> If the smooth line drifts away from zero for whole seasons, the calendar predictors are not capturing the seasonal rhythm Stage 1 found — that is a modeling gap, not random noise.</p>
+</div>
+</section>
+</section>
+<section id="assessment" class="level1">
+<h1>Weeks 11–12 — Model assessment: test, cross-validation, time split, tuning</h1>
+<section id="tune-one-thing-the-lasso-penalty" class="level2 qsr-scene">
+<h2 class="anchored" data-anchor-id="tune-one-thing-the-lasso-penalty">Tune one thing: the lasso penalty</h2>
+<div class="qsr-scene-intro">
+<p>The class file treats fine-tuning penalty and mixture as beyond scope; this project tunes exactly one parameter, the lasso penalty, on the cross-validation folds, to show the mechanics honestly. The tuned lasso then replaces the placeholder-penalty lasso in the final comparison. The ridge penalty is deliberately <em>not</em> tuned — it stays at its 0.01 placeholder, because tuning one model keeps the assessment readable and the tuning lesson is the mechanics, not a leaderboard.</p>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Show R code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (data_ready) {</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  lasso_tune_spec <span class="ot">&lt;-</span> <span class="fu">linear_reg</span>(<span class="at">penalty =</span> <span class="fu">tune</span>(), <span class="at">mixture =</span> <span class="dv">1</span>) <span class="sc">|&gt;</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">set_engine</span>(<span class="st">"glmnet"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">set_mode</span>(<span class="st">"regression"</span>)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  lasso_tune_workflow <span class="ot">&lt;-</span> <span class="fu">workflow</span>() <span class="sc">|&gt;</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">add_recipe</span>(recipe_v2) <span class="sc">|&gt;</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">add_model</span>(lasso_tune_spec)</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>  penalty_grid <span class="ot">&lt;-</span> <span class="fu">tibble</span>(<span class="at">penalty =</span> <span class="dv">10</span><span class="sc">^</span><span class="fu">seq</span>(<span class="sc">-</span><span class="dv">4</span>, <span class="dv">0</span>, <span class="at">length.out =</span> <span class="dv">10</span>))</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set.seed</span>(<span class="dv">681</span>)</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>  lasso_tune_results <span class="ot">&lt;-</span> <span class="fu">tune_grid</span>(</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    lasso_tune_workflow,</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">resamples =</span> daily_folds,</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">grid =</span> penalty_grid,</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">metrics =</span> reg_metrics</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>  best_penalty <span class="ot">&lt;-</span> <span class="fu">select_best</span>(lasso_tune_results, <span class="at">metric =</span> <span class="st">"rmse"</span>)</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>  lasso_tuned_workflow <span class="ot">&lt;-</span> <span class="fu">finalize_workflow</span>(lasso_tune_workflow, best_penalty)</span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>  lasso_tuned_fit <span class="ot">&lt;-</span> lasso_tuned_workflow <span class="sc">|&gt;</span> <span class="fu">fit</span>(<span class="at">data =</span> train_data)</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>  lasso_tuned_preds <span class="ot">&lt;-</span> <span class="fu">predict</span>(lasso_tuned_fit, <span class="at">new_data =</span> test_data) <span class="sc">|&gt;</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">bind_cols</span>(test_data <span class="sc">|&gt;</span> <span class="fu">select</span>(date, day_of_week, daily_demand)) <span class="sc">|&gt;</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">model =</span> <span class="st">"Lasso + Recipe v2"</span>, <span class="at">residual =</span> daily_demand <span class="sc">-</span> .pred)</span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>  all_preds_long <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(</span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>    all_preds_long <span class="sc">|&gt;</span> <span class="fu">filter</span>(model <span class="sc">!=</span> <span class="st">"Lasso + Recipe v2"</span>),</span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>    lasso_tuned_preds</span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Show R code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (data_ready) {</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  p_tuning <span class="ot">&lt;-</span> <span class="fu">autoplot</span>(lasso_tune_results) <span class="sc">+</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">labs</span>(<span class="at">caption =</span> <span class="st">"Cross-validated performance by lasso penalty. The lowest-RMSE penalty is selected and refitted on the full training set."</span>) <span class="sc">+</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    theme_business</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">show_chart</span>(p_tuning)</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="modeling_files/figure-html/tuning-chart-1.png" class="img-fluid figure-img" width="2400"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="qsr-takeaway">
+<p><strong>Takeaway:</strong> Tuning is done on the folds, never on the test set. The test set is used once, at the end, to report how the selected model does on unseen days.</p>
+</div>
+</section>
+<section id="the-ranked-comparison-test-cv-time-split" class="level2 qsr-scene">
+<h2 class="anchored" data-anchor-id="the-ranked-comparison-test-cv-time-split">The ranked comparison: test + CV + time split</h2>
+<div class="qsr-scene-intro">
+<p>One table, three views of the same five workflows plus the two baselines. Test metrics come from the random 80/20 split; CV metrics are the 5-fold cross-validation means on training data; the time split retrains every workflow on 2021–2024 and tests it on 2025, the honest check for a demand model, because a random split lets the model see every season in training.</p>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Show R code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (data_ready) {</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  test_metrics <span class="ot">&lt;-</span> all_preds_long <span class="sc">|&gt;</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(model) <span class="sc">|&gt;</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_modify</span>(<span class="sc">~</span> <span class="fu">reg_metrics</span>(.x, <span class="at">truth =</span> daily_demand, <span class="at">estimate =</span> .pred)) <span class="sc">|&gt;</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">transmute</span>(model, .metric, <span class="at">Test =</span> .estimate) <span class="sc">|&gt;</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> .metric, <span class="at">values_from =</span> Test)</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  cv_metrics <span class="ot">&lt;-</span> <span class="fu">imap_dfr</span>(model_workflows, <span class="cf">function</span>(wf, model_name) {</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (model_name <span class="sc">==</span> <span class="st">"Lasso + Recipe v2"</span>) {</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>      <span class="fu">collect_metrics</span>(lasso_tune_results) <span class="sc">|&gt;</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>        <span class="fu">filter</span>(.config <span class="sc">==</span> best_penalty<span class="sc">$</span>.config) <span class="sc">|&gt;</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>        <span class="fu">transmute</span>(<span class="at">model =</span> model_name, .metric, <span class="at">CV =</span> mean)</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    } <span class="cf">else</span> {</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>      <span class="fu">set.seed</span>(<span class="dv">681</span>)</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>      <span class="fu">fit_resamples</span>(wf, <span class="at">resamples =</span> daily_folds, <span class="at">metrics =</span> reg_metrics) <span class="sc">|&gt;</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>        <span class="fu">collect_metrics</span>() <span class="sc">|&gt;</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>        <span class="fu">transmute</span>(<span class="at">model =</span> model_name, .metric, <span class="at">CV =</span> mean)</span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>  }) <span class="sc">|&gt;</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> .metric, <span class="at">values_from =</span> CV)</span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>  time_train <span class="ot">&lt;-</span> modeling_data <span class="sc">|&gt;</span> <span class="fu">filter</span>(year <span class="sc">&lt;=</span> <span class="dv">2024</span>)</span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>  time_test <span class="ot">&lt;-</span> modeling_data <span class="sc">|&gt;</span> <span class="fu">filter</span>(year <span class="sc">==</span> <span class="dv">2025</span>)</span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>  time_workflows <span class="ot">&lt;-</span> model_workflows</span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>  time_workflows[[<span class="st">"Lasso + Recipe v2"</span>]] <span class="ot">&lt;-</span> lasso_tuned_workflow</span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>  time_preds <span class="ot">&lt;-</span> <span class="fu">imap_dfr</span>(time_workflows, <span class="cf">function</span>(wf, model_name) {</span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>    wf <span class="sc">|&gt;</span> <span class="fu">fit</span>(<span class="at">data =</span> time_train) <span class="sc">|&gt;</span></span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>      <span class="fu">predict</span>(<span class="at">new_data =</span> time_test) <span class="sc">|&gt;</span></span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>      <span class="fu">bind_cols</span>(time_test <span class="sc">|&gt;</span> <span class="fu">select</span>(daily_demand)) <span class="sc">|&gt;</span></span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>      <span class="fu">mutate</span>(<span class="at">model =</span> model_name)</span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a>  })</span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a>  time_weekday_baseline <span class="ot">&lt;-</span> time_train <span class="sc">|&gt;</span></span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(day_of_week) <span class="sc">|&gt;</span></span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(<span class="at">weekday_mean =</span> <span class="fu">mean</span>(daily_demand), <span class="at">.groups =</span> <span class="st">"drop"</span>)</span>
+<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a>  time_preds <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(</span>
+<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a>    time_preds,</span>
+<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a>    time_test <span class="sc">|&gt;</span></span>
+<span id="cb10-40"><a href="#cb10-40" aria-hidden="true" tabindex="-1"></a>      <span class="fu">transmute</span>(daily_demand, <span class="at">.pred =</span> <span class="fu">mean</span>(time_train<span class="sc">$</span>daily_demand),</span>
+<span id="cb10-41"><a href="#cb10-41" aria-hidden="true" tabindex="-1"></a>                <span class="at">model =</span> <span class="st">"Baseline: overall mean"</span>),</span>
+<span id="cb10-42"><a href="#cb10-42" aria-hidden="true" tabindex="-1"></a>    time_test <span class="sc">|&gt;</span></span>
+<span id="cb10-43"><a href="#cb10-43" aria-hidden="true" tabindex="-1"></a>      <span class="fu">left_join</span>(time_weekday_baseline, <span class="at">by =</span> <span class="st">"day_of_week"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb10-44"><a href="#cb10-44" aria-hidden="true" tabindex="-1"></a>      <span class="fu">transmute</span>(daily_demand, <span class="at">.pred =</span> weekday_mean,</span>
+<span id="cb10-45"><a href="#cb10-45" aria-hidden="true" tabindex="-1"></a>                <span class="at">model =</span> <span class="st">"Baseline: weekday average"</span>)</span>
+<span id="cb10-46"><a href="#cb10-46" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb10-47"><a href="#cb10-47" aria-hidden="true" tabindex="-1"></a>  time_metrics <span class="ot">&lt;-</span> time_preds <span class="sc">|&gt;</span></span>
+<span id="cb10-48"><a href="#cb10-48" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_by</span>(model) <span class="sc">|&gt;</span></span>
+<span id="cb10-49"><a href="#cb10-49" aria-hidden="true" tabindex="-1"></a>    <span class="fu">group_modify</span>(<span class="sc">~</span> <span class="fu">reg_metrics</span>(.x, <span class="at">truth =</span> daily_demand, <span class="at">estimate =</span> .pred)) <span class="sc">|&gt;</span></span>
+<span id="cb10-50"><a href="#cb10-50" aria-hidden="true" tabindex="-1"></a>    <span class="fu">transmute</span>(model, .metric, <span class="at">TimeTest =</span> .estimate) <span class="sc">|&gt;</span></span>
+<span id="cb10-51"><a href="#cb10-51" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> .metric, <span class="at">values_from =</span> TimeTest)</span>
+<span id="cb10-52"><a href="#cb10-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-53"><a href="#cb10-53" aria-hidden="true" tabindex="-1"></a>  comparison_table <span class="ot">&lt;-</span> test_metrics <span class="sc">|&gt;</span></span>
+<span id="cb10-54"><a href="#cb10-54" aria-hidden="true" tabindex="-1"></a>    <span class="fu">left_join</span>(cv_metrics <span class="sc">|&gt;</span> <span class="fu">select</span>(model, <span class="st">`</span><span class="at">CV RMSE</span><span class="st">`</span> <span class="ot">=</span> rmse), <span class="at">by =</span> <span class="st">"model"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb10-55"><a href="#cb10-55" aria-hidden="true" tabindex="-1"></a>    <span class="fu">left_join</span>(time_metrics, <span class="at">by =</span> <span class="st">"model"</span>, <span class="at">suffix =</span> <span class="fu">c</span>(<span class="st">""</span>, <span class="st">" (time)"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb10-56"><a href="#cb10-56" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ungroup</span>() <span class="sc">|&gt;</span></span>
+<span id="cb10-57"><a href="#cb10-57" aria-hidden="true" tabindex="-1"></a>    <span class="fu">transmute</span>(</span>
+<span id="cb10-58"><a href="#cb10-58" aria-hidden="true" tabindex="-1"></a>      <span class="at">Model =</span> model,</span>
+<span id="cb10-59"><a href="#cb10-59" aria-hidden="true" tabindex="-1"></a>      <span class="st">`</span><span class="at">Test RMSE</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(rmse, <span class="dv">1</span>),</span>
+<span id="cb10-60"><a href="#cb10-60" aria-hidden="true" tabindex="-1"></a>      <span class="st">`</span><span class="at">Test MAE</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(mae, <span class="dv">1</span>),</span>
+<span id="cb10-61"><a href="#cb10-61" aria-hidden="true" tabindex="-1"></a>      <span class="st">`</span><span class="at">Test R2</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(rsq, <span class="dv">3</span>),</span>
+<span id="cb10-62"><a href="#cb10-62" aria-hidden="true" tabindex="-1"></a>      <span class="st">`</span><span class="at">CV RMSE</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(<span class="st">`</span><span class="at">CV RMSE</span><span class="st">`</span>, <span class="dv">1</span>),</span>
+<span id="cb10-63"><a href="#cb10-63" aria-hidden="true" tabindex="-1"></a>      <span class="st">`</span><span class="at">Time-test RMSE</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(<span class="st">`</span><span class="at">rmse (time)</span><span class="st">`</span>, <span class="dv">1</span>),</span>
+<span id="cb10-64"><a href="#cb10-64" aria-hidden="true" tabindex="-1"></a>      <span class="st">`</span><span class="at">Time-test MAE</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(<span class="st">`</span><span class="at">mae (time)</span><span class="st">`</span>, <span class="dv">1</span>),</span>
+<span id="cb10-65"><a href="#cb10-65" aria-hidden="true" tabindex="-1"></a>      <span class="st">`</span><span class="at">Time-test R2</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">round</span>(<span class="st">`</span><span class="at">rsq (time)</span><span class="st">`</span>, <span class="dv">3</span>)</span>
+<span id="cb10-66"><a href="#cb10-66" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">|&gt;</span></span>
+<span id="cb10-67"><a href="#cb10-67" aria-hidden="true" tabindex="-1"></a>    <span class="fu">arrange</span>(<span class="st">`</span><span class="at">Test RMSE</span><span class="st">`</span>)</span>
+<span id="cb10-68"><a href="#cb10-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-69"><a href="#cb10-69" aria-hidden="true" tabindex="-1"></a>  model_rows <span class="ot">&lt;-</span> comparison_table <span class="sc">|&gt;</span> <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">str_starts</span>(Model, <span class="st">"Baseline"</span>))</span>
+<span id="cb10-70"><a href="#cb10-70" aria-hidden="true" tabindex="-1"></a>  winner_row <span class="ot">&lt;-</span> model_rows <span class="sc">|&gt;</span> <span class="fu">ungroup</span>() <span class="sc">|&gt;</span> <span class="fu">slice_min</span>(<span class="st">`</span><span class="at">Test RMSE</span><span class="st">`</span>, <span class="at">n =</span> <span class="dv">1</span>, <span class="at">with_ties =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb10-71"><a href="#cb10-71" aria-hidden="true" tabindex="-1"></a>  winner_name <span class="ot">&lt;-</span> winner_row<span class="sc">$</span>Model[[<span class="dv">1</span>]]</span>
+<span id="cb10-72"><a href="#cb10-72" aria-hidden="true" tabindex="-1"></a>  winner_mae <span class="ot">&lt;-</span> winner_row<span class="sc">$</span><span class="st">`</span><span class="at">Test MAE</span><span class="st">`</span>[[<span class="dv">1</span>]]</span>
+<span id="cb10-73"><a href="#cb10-73" aria-hidden="true" tabindex="-1"></a>  winner_rmse <span class="ot">&lt;-</span> winner_row<span class="sc">$</span><span class="st">`</span><span class="at">Test RMSE</span><span class="st">`</span>[[<span class="dv">1</span>]]</span>
+<span id="cb10-74"><a href="#cb10-74" aria-hidden="true" tabindex="-1"></a>  weekday_baseline_rmse <span class="ot">&lt;-</span> comparison_table <span class="sc">|&gt;</span></span>
+<span id="cb10-75"><a href="#cb10-75" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(Model <span class="sc">==</span> <span class="st">"Baseline: weekday average"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb10-76"><a href="#cb10-76" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pull</span>(<span class="st">`</span><span class="at">Test RMSE</span><span class="st">`</span>) <span class="sc">|&gt;</span></span>
+<span id="cb10-77"><a href="#cb10-77" aria-hidden="true" tabindex="-1"></a>    <span class="fu">first</span>()</span>
+<span id="cb10-78"><a href="#cb10-78" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Ranked model comparison: random-split test, 5-fold CV, and 2021–2024 → 2025 time split. Lower RMSE/MAE is better; higher R2 is better. Baselines have no CV row — they are not fitted workflows.</caption>
+<colgroup>
+<col style="width: 25%">
+<col style="width: 9%">
+<col style="width: 8%">
+<col style="width: 7%">
+<col style="width: 7%">
+<col style="width: 14%">
+<col style="width: 13%">
+<col style="width: 12%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Model</th>
+<th style="text-align: right;">Test RMSE</th>
+<th style="text-align: right;">Test MAE</th>
+<th style="text-align: right;">Test R2</th>
+<th style="text-align: right;">CV RMSE</th>
+<th style="text-align: right;">Time-test RMSE</th>
+<th style="text-align: right;">Time-test MAE</th>
+<th style="text-align: right;">Time-test R2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">LM + Recipe v2</td>
+<td style="text-align: right;">130.7</td>
+<td style="text-align: right;">84.8</td>
+<td style="text-align: right;">0.908</td>
+<td style="text-align: right;">110.6</td>
+<td style="text-align: right;">134.2</td>
+<td style="text-align: right;">96.8</td>
+<td style="text-align: right;">0.924</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Lasso + Recipe v2</td>
+<td style="text-align: right;">130.8</td>
+<td style="text-align: right;">85.0</td>
+<td style="text-align: right;">0.908</td>
+<td style="text-align: right;">110.8</td>
+<td style="text-align: right;">134.1</td>
+<td style="text-align: right;">96.9</td>
+<td style="text-align: right;">0.924</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Ridge + Recipe v2</td>
+<td style="text-align: right;">137.8</td>
+<td style="text-align: right;">89.8</td>
+<td style="text-align: right;">0.901</td>
+<td style="text-align: right;">116.1</td>
+<td style="text-align: right;">137.8</td>
+<td style="text-align: right;">100.8</td>
+<td style="text-align: right;">0.919</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Tree + Recipe v2</td>
+<td style="text-align: right;">192.7</td>
+<td style="text-align: right;">140.7</td>
+<td style="text-align: right;">0.799</td>
+<td style="text-align: right;">183.2</td>
+<td style="text-align: right;">178.8</td>
+<td style="text-align: right;">131.5</td>
+<td style="text-align: right;">0.835</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">LM + Recipe v1</td>
+<td style="text-align: right;">196.3</td>
+<td style="text-align: right;">114.0</td>
+<td style="text-align: right;">0.790</td>
+<td style="text-align: right;">166.4</td>
+<td style="text-align: right;">169.6</td>
+<td style="text-align: right;">108.6</td>
+<td style="text-align: right;">0.856</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Baseline: weekday average</td>
+<td style="text-align: right;">383.0</td>
+<td style="text-align: right;">294.1</td>
+<td style="text-align: right;">0.201</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">373.1</td>
+<td style="text-align: right;">289.7</td>
+<td style="text-align: right;">0.168</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Baseline: overall mean</td>
+<td style="text-align: right;">428.0</td>
+<td style="text-align: right;">317.8</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">407.4</td>
+<td style="text-align: right;">318.2</td>
+<td style="text-align: right;">NA</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="qsr-takeaway">
+<p><strong>Takeaway:</strong> Judge the winner on all three views. If the ranking flips between the random test and the time test, trust the time test more for planning: it is the only view where the model predicts a year it has never seen.</p>
+</div>
+</section>
+<section id="the-winner-and-what-drives-it" class="level2 qsr-scene">
+<h2 class="anchored" data-anchor-id="the-winner-and-what-drives-it">The winner, and what drives it</h2>
+<div class="qsr-scene-intro">
+<p>Only the winning workflow is interpreted in detail — the Week 12 rule is that there is no point interpreting a model before its metrics justify it. For a linear, lasso, or ridge winner these are the largest coefficients; for a tree winner they are the rpart variable importance values.</p>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Show R code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (data_ready) {</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  winner_fit <span class="ot">&lt;-</span> <span class="cf">if</span> (winner_name <span class="sc">==</span> <span class="st">"Lasso + Recipe v2"</span>) {</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    lasso_tuned_fit</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    model_fits[[winner_name]]</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (winner_name <span class="sc">==</span> <span class="st">"Tree + Recipe v2"</span>) {</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    importance <span class="ot">&lt;-</span> <span class="fu">extract_fit_engine</span>(winner_fit)<span class="sc">$</span>variable.importance</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">tibble</span>(<span class="at">Term =</span> <span class="fu">names</span>(importance), <span class="at">Importance =</span> <span class="fu">as.numeric</span>(importance)) <span class="sc">|&gt;</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>      <span class="fu">arrange</span>(<span class="fu">desc</span>(Importance)) <span class="sc">|&gt;</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>      <span class="fu">slice_head</span>(<span class="at">n =</span> <span class="dv">10</span>) <span class="sc">|&gt;</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>      <span class="fu">transmute</span>(Term, <span class="at">Importance =</span> <span class="fu">round</span>(Importance, <span class="dv">1</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>      knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">caption =</span> <span class="fu">paste0</span>(<span class="st">"Winning workflow ("</span>, winner_name, <span class="st">"): variable importance"</span>),</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>                   <span class="at">align =</span> <span class="fu">c</span>(<span class="st">"l"</span>, <span class="st">"r"</span>))</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>    winner_fit <span class="sc">|&gt;</span></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>      <span class="fu">extract_fit_parsnip</span>() <span class="sc">|&gt;</span></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>      <span class="fu">tidy</span>() <span class="sc">|&gt;</span></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(term <span class="sc">!=</span> <span class="st">"(Intercept)"</span>, <span class="sc">!</span><span class="fu">is.na</span>(estimate)) <span class="sc">|&gt;</span></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>      <span class="fu">arrange</span>(<span class="fu">desc</span>(<span class="fu">abs</span>(estimate))) <span class="sc">|&gt;</span></span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>      <span class="fu">slice_head</span>(<span class="at">n =</span> <span class="dv">10</span>) <span class="sc">|&gt;</span></span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>      <span class="fu">transmute</span>(<span class="at">Term =</span> term, <span class="at">Estimate =</span> <span class="fu">round</span>(estimate, <span class="dv">1</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>      knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="at">caption =</span> <span class="fu">paste0</span>(<span class="st">"Winning workflow ("</span>, winner_name, <span class="st">"): largest coefficients"</span>),</span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>                   <span class="at">align =</span> <span class="fu">c</span>(<span class="st">"l"</span>, <span class="st">"r"</span>))</span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>Winning workflow (LM + Recipe v2): largest coefficients</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Term</th>
+<th style="text-align: right;">Estimate</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">month_Jul</td>
+<td style="text-align: right;">216.3</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">month_Jun</td>
+<td style="text-align: right;">199.1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">month_Aug</td>
+<td style="text-align: right;">186.6</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">day_of_week_Saturday</td>
+<td style="text-align: right;">162.9</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">month_May</td>
+<td style="text-align: right;">145.6</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">month_Sep</td>
+<td style="text-align: right;">121.9</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">event_group_No.special.event</td>
+<td style="text-align: right;">-121.1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">day_of_week_Friday</td>
+<td style="text-align: right;">111.0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">day_of_week_Sunday</td>
+<td style="text-align: right;">98.1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">month_Oct</td>
+<td style="text-align: right;">79.5</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="qsr-key-finding">
+<p><strong>Recommendation:</strong> the winning workflow is <strong>LM + Recipe v2</strong>, with a test MAE of <strong>85 units per day</strong> (test RMSE 131). In business terms, a typical day’s prediction is off by about that many units — useful for setting a prep buffer and staffing range, not as an exact order quantity.</p>
+</div>
+<div class="qsr-takeaway">
+<p><strong>Takeaway:</strong> A model earns a recommendation by beating both baselines and staying consistent across the test, CV, and time-split views — not by winning one metric on one split. If the table above shows the winner behind the weekday baseline on any view, the honest recommendation is the baseline, and the modeling result is “the calendar already explains most of what these predictors can.”</p>
+</div>
+</section>
+<section id="using-the-model-a-one-week-forecast-and-the-event-effect" class="level2 qsr-scene">
+<h2 class="anchored" data-anchor-id="using-the-model-a-one-week-forecast-and-the-event-effect">Using the model: a one-week forecast and the event effect</h2>
+<div class="qsr-scene-intro">
+<p>The assessment is finished, so the winning workflow (<strong>LM + Recipe v2</strong>) can finally be put to work. For use, it is refitted on <em>all</em> of the modeling days instead of the 80% training split: with the model already chosen and honestly assessed, holding back data would only throw away information. The honest error estimate does <strong>not</strong> come from this refit — it still comes from the assessment above, and the planning numbers below use the conservative time-test MAE, not the random-split figure.</p>
+</div>
+<div class="cell">
+<details class="code-fold">
+<summary>Show R code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (data_ready) {</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  deploy_workflow <span class="ot">&lt;-</span> <span class="cf">if</span> (winner_name <span class="sc">==</span> <span class="st">"Lasso + Recipe v2"</span>) {</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    lasso_tuned_workflow</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    model_workflows[[winner_name]]</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>  deploy_fit <span class="ot">&lt;-</span> deploy_workflow <span class="sc">|&gt;</span> <span class="fu">fit</span>(<span class="at">data =</span> modeling_data)</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>  winner_time_row <span class="ot">&lt;-</span> comparison_table <span class="sc">|&gt;</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ungroup</span>() <span class="sc">|&gt;</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(Model <span class="sc">==</span> winner_name)</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>  winner_time_mae <span class="ot">&lt;-</span> <span class="cf">if</span> (<span class="st">"Time-test MAE"</span> <span class="sc">%in%</span> <span class="fu">names</span>(winner_time_row)) {</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    winner_time_row<span class="sc">$</span><span class="st">`</span><span class="at">Time-test MAE</span><span class="st">`</span>[[<span class="dv">1</span>]]</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    <span class="cn">NA_real_</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="sc">!</span><span class="fu">is.finite</span>(winner_time_mae)) {</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    winner_time_mae <span class="ot">&lt;-</span> winner_mae</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>  jan_rows <span class="ot">&lt;-</span> modeling_data <span class="sc">|&gt;</span> <span class="fu">filter</span>(month <span class="sc">==</span> <span class="st">"Jan"</span>)</span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>  jan_temp_median <span class="ot">&lt;-</span> <span class="fu">median</span>(jan_rows<span class="sc">$</span>avg_temp_f, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>  jan_precip_median <span class="ot">&lt;-</span> <span class="fu">median</span>(jan_rows<span class="sc">$</span>precip_inches, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>  jan_precip_type <span class="ot">&lt;-</span> jan_rows <span class="sc">|&gt;</span></span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(precip_type)) <span class="sc">|&gt;</span></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">count</span>(precip_type, <span class="at">sort =</span> <span class="cn">TRUE</span>) <span class="sc">|&gt;</span></span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ungroup</span>() <span class="sc">|&gt;</span></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>    <span class="fu">slice_head</span>(<span class="at">n =</span> <span class="dv">1</span>) <span class="sc">|&gt;</span></span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pull</span>(precip_type)</span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>  last_date <span class="ot">&lt;-</span> <span class="fu">max</span>(modeling_data<span class="sc">$</span>date)</span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a>  forecast_dates <span class="ot">&lt;-</span> <span class="fu">seq</span>(last_date <span class="sc">+</span> <span class="dv">1</span>, <span class="at">by =</span> <span class="st">"day"</span>, <span class="at">length.out =</span> <span class="dv">7</span>)</span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a>  forecast_month_num <span class="ot">&lt;-</span> <span class="fu">as.integer</span>(<span class="fu">format</span>(forecast_dates, <span class="st">"%m"</span>))</span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a>  forecast_weekday <span class="ot">&lt;-</span> <span class="fu">weekdays</span>(forecast_dates)</span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-36"><a href="#cb12-36" aria-hidden="true" tabindex="-1"></a>  forecast_data <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb12-37"><a href="#cb12-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">date =</span> forecast_dates,</span>
+<span id="cb12-38"><a href="#cb12-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">daily_demand =</span> <span class="cn">NA_real_</span>,</span>
+<span id="cb12-39"><a href="#cb12-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">day_of_week =</span> <span class="fu">factor</span>(forecast_weekday, <span class="at">levels =</span> <span class="fu">levels</span>(modeling_data<span class="sc">$</span>day_of_week)),</span>
+<span id="cb12-40"><a href="#cb12-40" aria-hidden="true" tabindex="-1"></a>    <span class="at">month =</span> <span class="fu">factor</span>(month.abb[forecast_month_num], <span class="at">levels =</span> <span class="fu">levels</span>(modeling_data<span class="sc">$</span>month)),</span>
+<span id="cb12-41"><a href="#cb12-41" aria-hidden="true" tabindex="-1"></a>    <span class="at">year =</span> <span class="fu">as.integer</span>(<span class="fu">format</span>(forecast_dates, <span class="st">"%Y"</span>)),</span>
+<span id="cb12-42"><a href="#cb12-42" aria-hidden="true" tabindex="-1"></a>    <span class="at">is_weekend =</span> <span class="fu">factor</span>(<span class="fu">if_else</span>(forecast_weekday <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Saturday"</span>, <span class="st">"Sunday"</span>), <span class="st">"Yes"</span>, <span class="st">"No"</span>),</span>
+<span id="cb12-43"><a href="#cb12-43" aria-hidden="true" tabindex="-1"></a>                         <span class="at">levels =</span> <span class="fu">levels</span>(modeling_data<span class="sc">$</span>is_weekend)),</span>
+<span id="cb12-44"><a href="#cb12-44" aria-hidden="true" tabindex="-1"></a>    <span class="at">is_holiday =</span> <span class="fu">factor</span>(<span class="fu">if_else</span>(forecast_dates <span class="sc">==</span> <span class="fu">as.Date</span>(<span class="fu">paste0</span>(<span class="fu">format</span>(forecast_dates, <span class="st">"%Y"</span>), <span class="st">"-01-01"</span>)), <span class="st">"Yes"</span>, <span class="st">"No"</span>),</span>
+<span id="cb12-45"><a href="#cb12-45" aria-hidden="true" tabindex="-1"></a>                         <span class="at">levels =</span> <span class="fu">levels</span>(modeling_data<span class="sc">$</span>is_holiday)),</span>
+<span id="cb12-46"><a href="#cb12-46" aria-hidden="true" tabindex="-1"></a>    <span class="at">season =</span> <span class="fu">factor</span>(</span>
+<span id="cb12-47"><a href="#cb12-47" aria-hidden="true" tabindex="-1"></a>      <span class="fu">case_when</span>(</span>
+<span id="cb12-48"><a href="#cb12-48" aria-hidden="true" tabindex="-1"></a>        forecast_month_num <span class="sc">%in%</span> <span class="fu">c</span>(<span class="dv">12</span>, <span class="dv">1</span>, <span class="dv">2</span>) <span class="sc">~</span> <span class="st">"Winter"</span>,</span>
+<span id="cb12-49"><a href="#cb12-49" aria-hidden="true" tabindex="-1"></a>        forecast_month_num <span class="sc">%in%</span> <span class="dv">3</span><span class="sc">:</span><span class="dv">5</span> <span class="sc">~</span> <span class="st">"Spring"</span>,</span>
+<span id="cb12-50"><a href="#cb12-50" aria-hidden="true" tabindex="-1"></a>        forecast_month_num <span class="sc">%in%</span> <span class="dv">6</span><span class="sc">:</span><span class="dv">8</span> <span class="sc">~</span> <span class="st">"Summer"</span>,</span>
+<span id="cb12-51"><a href="#cb12-51" aria-hidden="true" tabindex="-1"></a>        <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">"Fall"</span></span>
+<span id="cb12-52"><a href="#cb12-52" aria-hidden="true" tabindex="-1"></a>      ),</span>
+<span id="cb12-53"><a href="#cb12-53" aria-hidden="true" tabindex="-1"></a>      <span class="at">levels =</span> <span class="fu">levels</span>(modeling_data<span class="sc">$</span>season)</span>
+<span id="cb12-54"><a href="#cb12-54" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb12-55"><a href="#cb12-55" aria-hidden="true" tabindex="-1"></a>    <span class="at">avg_temp_f =</span> jan_temp_median,</span>
+<span id="cb12-56"><a href="#cb12-56" aria-hidden="true" tabindex="-1"></a>    <span class="at">precip_inches =</span> jan_precip_median,</span>
+<span id="cb12-57"><a href="#cb12-57" aria-hidden="true" tabindex="-1"></a>    <span class="at">precip_type =</span> <span class="fu">factor</span>(<span class="fu">as.character</span>(jan_precip_type), <span class="at">levels =</span> <span class="fu">levels</span>(modeling_data<span class="sc">$</span>precip_type)),</span>
+<span id="cb12-58"><a href="#cb12-58" aria-hidden="true" tabindex="-1"></a>    <span class="at">event_group =</span> <span class="fu">factor</span>(<span class="st">"No special event"</span>, <span class="at">levels =</span> <span class="fu">levels</span>(modeling_data<span class="sc">$</span>event_group))</span>
+<span id="cb12-59"><a href="#cb12-59" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb12-60"><a href="#cb12-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-61"><a href="#cb12-61" aria-hidden="true" tabindex="-1"></a>  forecast_preds <span class="ot">&lt;-</span> <span class="fu">predict</span>(deploy_fit, <span class="at">new_data =</span> forecast_data)<span class="sc">$</span>.pred</span>
+<span id="cb12-62"><a href="#cb12-62" aria-hidden="true" tabindex="-1"></a>  forecast_table <span class="ot">&lt;-</span> forecast_data <span class="sc">|&gt;</span></span>
+<span id="cb12-63"><a href="#cb12-63" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">.pred =</span> forecast_preds) <span class="sc">|&gt;</span></span>
+<span id="cb12-64"><a href="#cb12-64" aria-hidden="true" tabindex="-1"></a>    <span class="fu">transmute</span>(</span>
+<span id="cb12-65"><a href="#cb12-65" aria-hidden="true" tabindex="-1"></a>      <span class="at">Date =</span> date,</span>
+<span id="cb12-66"><a href="#cb12-66" aria-hidden="true" tabindex="-1"></a>      <span class="at">Weekday =</span> <span class="fu">as.character</span>(day_of_week),</span>
+<span id="cb12-67"><a href="#cb12-67" aria-hidden="true" tabindex="-1"></a>      <span class="st">`</span><span class="at">Predicted units</span><span class="st">`</span> <span class="ot">=</span> scales<span class="sc">::</span><span class="fu">comma</span>(<span class="fu">round</span>(.pred)),</span>
+<span id="cb12-68"><a href="#cb12-68" aria-hidden="true" tabindex="-1"></a>      <span class="st">`</span><span class="at">Planning range (units)</span><span class="st">`</span> <span class="ot">=</span> <span class="fu">paste0</span>(</span>
+<span id="cb12-69"><a href="#cb12-69" aria-hidden="true" tabindex="-1"></a>        scales<span class="sc">::</span><span class="fu">comma</span>(<span class="fu">round</span>(.pred <span class="sc">-</span> winner_time_mae)), <span class="st">" – "</span>,</span>
+<span id="cb12-70"><a href="#cb12-70" aria-hidden="true" tabindex="-1"></a>        scales<span class="sc">::</span><span class="fu">comma</span>(<span class="fu">round</span>(.pred <span class="sc">+</span> winner_time_mae))</span>
+<span id="cb12-71"><a href="#cb12-71" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb12-72"><a href="#cb12-72" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb12-73"><a href="#cb12-73" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-74"><a href="#cb12-74" aria-hidden="true" tabindex="-1"></a>  rows_2025 <span class="ot">&lt;-</span> modeling_data <span class="sc">|&gt;</span> <span class="fu">filter</span>(year <span class="sc">==</span> <span class="dv">2025</span>)</span>
+<span id="cb12-75"><a href="#cb12-75" aria-hidden="true" tabindex="-1"></a>  preds_as_is <span class="ot">&lt;-</span> <span class="fu">predict</span>(deploy_fit, <span class="at">new_data =</span> rows_2025)<span class="sc">$</span>.pred</span>
+<span id="cb12-76"><a href="#cb12-76" aria-hidden="true" tabindex="-1"></a>  rows_2025_no_event <span class="ot">&lt;-</span> rows_2025 <span class="sc">|&gt;</span></span>
+<span id="cb12-77"><a href="#cb12-77" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">event_group =</span> <span class="fu">factor</span>(<span class="st">"No special event"</span>, <span class="at">levels =</span> <span class="fu">levels</span>(modeling_data<span class="sc">$</span>event_group)))</span>
+<span id="cb12-78"><a href="#cb12-78" aria-hidden="true" tabindex="-1"></a>  preds_no_event <span class="ot">&lt;-</span> <span class="fu">predict</span>(deploy_fit, <span class="at">new_data =</span> rows_2025_no_event)<span class="sc">$</span>.pred</span>
+<span id="cb12-79"><a href="#cb12-79" aria-hidden="true" tabindex="-1"></a>  event_diff <span class="ot">&lt;-</span> preds_as_is <span class="sc">-</span> preds_no_event</span>
+<span id="cb12-80"><a href="#cb12-80" aria-hidden="true" tabindex="-1"></a>  event_lift_all <span class="ot">&lt;-</span> <span class="fu">mean</span>(event_diff)</span>
+<span id="cb12-81"><a href="#cb12-81" aria-hidden="true" tabindex="-1"></a>  had_event <span class="ot">&lt;-</span> <span class="fu">as.character</span>(rows_2025<span class="sc">$</span>event_group) <span class="sc">!=</span> <span class="st">"No special event"</span></span>
+<span id="cb12-82"><a href="#cb12-82" aria-hidden="true" tabindex="-1"></a>  event_days_2025 <span class="ot">&lt;-</span> <span class="fu">sum</span>(had_event)</span>
+<span id="cb12-83"><a href="#cb12-83" aria-hidden="true" tabindex="-1"></a>  event_lift_event_days <span class="ot">&lt;-</span> <span class="fu">mean</span>(event_diff[had_event])</span>
+<span id="cb12-84"><a href="#cb12-84" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p><strong>Assumptions for this demonstration.</strong> The calendar, weather, and event tables end on 2025-12-31, so the forecast week is built by assumption, not from records: the holiday flag is set for January 1 only, temperature and precipitation are set to the January medians from the data (<strong>15 °F</strong> and <strong>0 inches</strong>), precipitation type is set to January’s most common type in the data (<strong>None</strong>), and every day is treated as a no-special-event day. This shows how the model would be used in planning; it is not a claim about that actual week.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<caption>One-week demonstration forecast from the refitted winning workflow. The planning range is the prediction plus/minus the winner’s time-test MAE — a prep and staffing range, not a confidence interval.</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Date</th>
+<th style="text-align: left;">Weekday</th>
+<th style="text-align: right;">Predicted units</th>
+<th style="text-align: right;">Planning range (units)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">2026-01-01</td>
+<td style="text-align: left;">Thursday</td>
+<td style="text-align: right;">1,216</td>
+<td style="text-align: right;">1,119 – 1,313</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2026-01-02</td>
+<td style="text-align: left;">Friday</td>
+<td style="text-align: right;">1,302</td>
+<td style="text-align: right;">1,206 – 1,399</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2026-01-03</td>
+<td style="text-align: left;">Saturday</td>
+<td style="text-align: right;">1,450</td>
+<td style="text-align: right;">1,353 – 1,547</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2026-01-04</td>
+<td style="text-align: left;">Sunday</td>
+<td style="text-align: right;">1,264</td>
+<td style="text-align: right;">1,167 – 1,361</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2026-01-05</td>
+<td style="text-align: left;">Monday</td>
+<td style="text-align: right;">985</td>
+<td style="text-align: right;">888 – 1,082</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2026-01-06</td>
+<td style="text-align: left;">Tuesday</td>
+<td style="text-align: right;">949</td>
+<td style="text-align: right;">852 – 1,046</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">2026-01-07</td>
+<td style="text-align: left;">Wednesday</td>
+<td style="text-align: right;">1,017</td>
+<td style="text-align: right;">920 – 1,114</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><strong>The event effect, in units.</strong> The refitted winner can also price an event day. Predicting every day of 2025 twice — once as recorded, and once with the event group forced to “No special event” for every row — gives the model’s estimated event lift directly in units: <strong>23 units per day</strong> averaged over the whole year, and <strong>658 units per day</strong> on the <strong>13 days</strong> that actually had a special event. This is an association from the calendar and event indicators, not proof that events cause the lift — but it is the number an owner would use to decide extra prep on event days. The sign agrees with the winner’s coefficients table above, where “No special event” carries a negative estimate; the counterfactual difference, not that normalized coefficient, is the figure in units.</p>
+<div class="qsr-takeaway">
+<p><strong>Takeaway:</strong> The owner plans the week from the forecast’s planning range, not the single predicted number; adds roughly <strong>658 units</strong> of prep on a special-event day; and expects a typical miss around the time-test MAE (about <strong>97 units per day</strong>) — the conservative error from predicting a year the model had never seen.</p>
+</div>
+</section>
+</section>
+<section id="limits" class="level1">
+<h1>What did not work, and the limits</h1>
+<section id="honest-limits-of-this-modeling" class="level2 qsr-scene">
+<h2 class="anchored" data-anchor-id="honest-limits-of-this-modeling">Honest limits of this modeling</h2>
+<ul>
+<li><strong>One restaurant.</strong> Everything here is R07 in Minneapolis. Nothing transfers to another location without refitting and re-assessing.</li>
+<li><strong>Random vs time split.</strong> The random test split mixes years, so its metrics are optimistic for a seasonal business. The time-split columns are the conservative view.</li>
+<li><strong>Weather is context, not a cause.</strong> Temperature and precipitation are associated with demand; this page does not show they cause it, and forecast weather at planning time will be less accurate than the recorded weather used here.</li>
+<li><strong>Monthly marketing is excluded, on purpose.</strong> Ad spend and social posts are monthly, so repeating them on daily rows would invent daily precision the data does not have.</li>
+<li><strong>Listed calendar effects only.</strong> The models know weekday, month, season, holidays, and the four named local events. They know nothing about promotions at item level, competitor actions, or closures.</li>
+<li><strong>Known specification issue.</strong> The weekend flag overlaps the Saturday/Sunday dummies, so the linear fits drop one aliased term (the Week 12 rank-deficiency caution). Predictions are unaffected, but individual coefficients for those terms should not be over-interpreted.</li>
+</ul>
+</section>
+<section id="final-thought" class="level2">
+<h2 class="anchored" data-anchor-id="final-thought">Final thought</h2>
+<p>Stage 1 showed demand has a rhythm: summer peaks, weekday patterns, and event days. This page shows how far that rhythm alone can take a prediction, where it breaks (the residuals and the time split), and what a defensible forecast error looks like in units per day. The next improvement is not a fancier model — it is better information at prediction time, starting with item-level promotion calendars and actual weather forecasts.</p>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script>
+(function () {
+  function initQsrEffects() {
+    if (document.documentElement.dataset.qsrEffectsReady === "true") return;
+    document.documentElement.dataset.qsrEffectsReady = "true";
+
+    var progress = document.createElement("div");
+    progress.id = "qsr-reading-progress";
+    progress.setAttribute("aria-hidden", "true");
+    document.body.appendChild(progress);
+
+    var topButton = document.createElement("button");
+    topButton.id = "qsr-backtop";
+    topButton.type = "button";
+    topButton.textContent = "↑ Back to top";
+    topButton.setAttribute("aria-label", "Back to top");
+    document.body.appendChild(topButton);
+    topButton.addEventListener("click", function () {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    function updateProgress() {
+      var root = document.documentElement;
+      var maxScroll = Math.max(1, root.scrollHeight - root.clientHeight);
+      var scrollTop = window.scrollY || root.scrollTop || 0;
+      var pct = Math.max(0, Math.min(100, scrollTop / maxScroll * 100));
+      progress.style.width = pct + "%";
+      topButton.classList.toggle("visible", scrollTop > 550);
+    }
+    window.addEventListener("scroll", updateProgress, { passive: true });
+    window.addEventListener("resize", updateProgress);
+    updateProgress();
+
+    var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion || !("IntersectionObserver" in window)) return;
+
+    var chartOutputs = Array.prototype.slice.call(document.querySelectorAll(".cell-output-display"))
+      .filter(function (node) { return !!node.querySelector("img"); });
+    if (!chartOutputs.length) return;
+
+    document.documentElement.classList.add("qsr-motion-ready");
+    var observer = new IntersectionObserver(function (entries, obs) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("qsr-is-visible");
+          obs.unobserve(entry.target);
+        }
+      });
+    }, { root: null, threshold: 0.12, rootMargin: "0px 0px -5% 0px" });
+
+    chartOutputs.forEach(function (node) {
+      node.classList.add("qsr-chart-reveal");
+      observer.observe(node);
+    });
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initQsrEffects, { once: true });
+  } else {
+    initQsrEffects();
+  }
+})();
+</script>
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+            // target, if specified
+            link.setAttribute("target", "_blank");
+            if (link.getAttribute("rel") === null) {
+              link.setAttribute("rel", "noopener");
+            }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">
+<p>OMIS 681 · Stage 1</p>
+</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+<p>R · tidyverse · ggplot2 · Quarto</p>
+</div>
+  </div>
+</footer>
+
+
+
+
+<script src="site_libs/quarto-html/zenscroll-min.js"></script>
+</body></html>
